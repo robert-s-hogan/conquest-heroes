@@ -1,5 +1,5 @@
 <template>
-  <div class="mb-4 border-2 rounded-md shadow-sm bg-gray-50 border-black">
+  <div class="mb-4 border-2 shadow-sm bg-gray-50 border-black">
     <div>
       <LabelText :text="title" class="pl-2 font-bold" />
 

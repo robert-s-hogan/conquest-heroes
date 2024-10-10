@@ -5,13 +5,10 @@
         <nav>
           <ul>
             <li class="mb-4">
-              <a href="#" class="text-blue-500 hover:underline">Home</a>
+              <a href="#" class="text-blue-500 hover:underline">Campaigns</a>
             </li>
             <li class="mb-4">
-              <a href="#" class="text-blue-500 hover:underline">Profile</a>
-            </li>
-            <li class="mb-4">
-              <a href="#" class="text-blue-500 hover:underline">Settings</a>
+              <a href="#" class="text-blue-500 hover:underline">Encounter</a>
             </li>
           </ul>
         </nav>
@@ -30,8 +27,6 @@
             { label: 'XP Threshold Deadly', value: '400' },
           ]"
         />
-
-        <Button variant="primary">Edit Campaign</Button>
       </main>
     </div>
   </div>
@@ -40,5 +35,4 @@
 <script setup>
 import Heading from "@/atoms/Heading/Heading.vue";
 import DataSection from "@/organisms/DataSection/DataSection.vue";
-import Button from "@/atoms/Button/Button.vue";
 </script>
