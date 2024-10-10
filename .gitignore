@@ -1,0 +1,39 @@
+# Node Modules
+node_modules/
+
+# Vite Build Output
+dist/
+
+# Local Environment Files
+.env.local
+.env.*.local
+.env
+.vite-env.d.ts
+
+# Firebase Config
+firebase.js
+
+# Cypress Files
+cypress/screenshots/
+cypress/videos/
+cypress/fixtures/
+cypress/downloads/
+
+# Log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# macOS
+.DS_Store
+
+# IDE and Editor Files
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Optional Firebase Emulators if used
+firebase-debug.log
+.firebaserc
