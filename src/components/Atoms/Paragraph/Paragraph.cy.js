@@ -4,7 +4,12 @@ import Paragraph from "./Paragraph.vue";
 
 describe("Paragraph Component", () => {
   beforeEach(() => {
-    cy.mount(<Paragraph text="Sample text" size="sm" />);
+    mount(Paragraph, {
+      props: {
+        text: "Sample text",
+        size: "sm",
+      },
+    });
   });
 
   it("renders the paragraph with the correct text", () => {
