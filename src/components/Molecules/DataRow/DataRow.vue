@@ -1,7 +1,9 @@
 <template>
-  <div class="flex justify-between p-2 border-b border-gray-200">
-    <span class="font-semibold">{{ label }}</span>
-    <span>{{ value }}</span>
+  <div class="flex items-center border-y border-black">
+    <span class="flex-1 text-left p-1">{{ label }}</span>
+    <!-- Darker Divider with consistent spacing -->
+    <span class="w-px h-8 bg-black mx-4"></span>
+    <span class="flex-1 text-right p-1">{{ value }}</span>
   </div>
 </template>
 

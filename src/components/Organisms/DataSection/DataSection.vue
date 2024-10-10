@@ -1,7 +1,8 @@
 <template>
-  <div class="p-4 mb-4 border rounded-md shadow-sm bg-gray-50">
-    <Heading :title="title" />
+  <div class="mb-4 border-2 rounded-md shadow-sm bg-gray-50 border-black">
     <div>
+      <LabelText :text="title" class="pl-2 font-bold" />
+
       <DataRow
         v-for="(item, index) in items"
         :key="index"
@@ -14,7 +15,7 @@
 
 <script setup>
 import { defineProps } from "vue";
-import Heading from "@/atoms/Heading/Heading.vue";
+import LabelText from "@/atoms/LabelText/LabelText.vue";
 import DataRow from "@/molecules/DataRow/DataRow.vue";
 
 const props = defineProps({
