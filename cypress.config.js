@@ -1,12 +1,10 @@
 import { defineConfig } from "cypress";
-import viteDevServer from "@cypress/vite-dev-server";
 
 export default defineConfig({
   e2e: {
     baseUrl: "http://localhost:5173",
     setupNodeEvents(on, config) {
-      // Use Vite as the dev server for Cypress
-      on("dev-server:start", (options) => viteDevServer(options));
+      // no additional setup needed
     },
     supportFile: "cypress/support/index.js",
   },
@@ -15,9 +13,11 @@ export default defineConfig({
       framework: "vue",
       bundler: "vite",
     },
-    setupNodeEvents(on, config) {
-      on("dev-server:start", (options) => viteDevServer(options));
-    },
+    // Specify the template path
+    indexHtmlFile: "cypress/support/component-index.html",
     specPattern: "src/components/**/*.cy.{js,jsx,ts,tsx}",
+    viewportWidth: 1280,
+    viewportHeight: 720,
+    supportFile: "cypress/support/component.js",
   },
 });
