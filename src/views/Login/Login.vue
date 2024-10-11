@@ -37,23 +37,24 @@
           />
         </div>
         <div class="flex items-center justify-between">
-          <button
-            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full"
-            type="submit"
-          >
+          <Button variant="primary" type="submit" class="w-full">
             Login
-          </button>
+          </Button>
+        </div>
+
+        <!-- Link to Register Page -->
+        <div class="text-center mt-4">
+          <router-link to="/register" class="text-blue-500 hover:underline">
+            Don't have an account? Register
+          </router-link>
         </div>
       </form>
 
       <!-- Google Login Button -->
       <div class="text-center mt-4">
-        <button
-          @click="handleGoogleLogin"
-          class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full"
-        >
+        <Button variant="secondary" @click="handleGoogleLogin" class="w-full">
           Login with Google
-        </button>
+        </Button>
       </div>
     </div>
   </div>
@@ -64,6 +65,7 @@ import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { auth } from "@/firebase/firebaseConfig";
 import { login, loginWithGoogle } from "@/services/Auth/authServices";
+import Button from "@/components/atoms/Button/Button.vue"; // Import Button component
 
 const router = useRouter();
 const username = ref("");

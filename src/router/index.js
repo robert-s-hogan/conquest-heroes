@@ -23,7 +23,13 @@ const routes = [
     meta: { requiresAuth: true },
     children: [{ path: "", component: Dashboard }],
   },
-  // Add more authenticated routes here...
+  {
+    path: "/register",
+    component: DefaultLayout,
+    children: [
+      { path: "", component: () => import("@/views/Register/Register.vue") },
+    ],
+  },
 ];
 
 const router = createRouter({
