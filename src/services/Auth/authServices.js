@@ -1,18 +1,18 @@
 // src/services/authServices.js
 
 import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
+  createUserWithEmailAndPassword as defaultCreateUserWithEmailAndPassword,
+  signInWithEmailAndPassword as defaultSignInWithEmailAndPassword,
+  signOut as defaultSignOut,
   GoogleAuthProvider,
-  signInWithPopup,
+  signInWithPopup as defaultSignInWithPopup,
 } from "firebase/auth";
 
 export const login = async (
   auth,
   email,
   password,
-  signInFn = signInWithEmailAndPassword
+  signInFn = defaultSignInWithEmailAndPassword
 ) => {
   try {
     const userCredential = await signInFn(auth, email, password);
@@ -26,9 +26,9 @@ export const login = async (
   }
 };
 
-export const logout = async (auth) => {
+export const logout = async (auth, signOutFn = defaultSignOut) => {
   try {
-    await signOut(auth);
+    await signOutFn(auth);
   } catch (error) {
     if (error instanceof Error) {
       console.error("Error during logout:", error.message);
@@ -40,25 +40,32 @@ export const logout = async (auth) => {
 
 export const register = async (auth, email, password) => {
   try {
-    const userCredential = await createUserWithEmailAndPassword(
-      auth,
+    // Use auth.createUserWithEmailAndPassword so that the function can work with both real and mock auth
+    const userCredential = await auth.createUserWithEmailAndPassword(
       email,
       password
     );
-    return userCredential.user;
+    return userCredential;
   } catch (error) {
-    if (error instanceof Error) {
+    if (error.code === "auth/email-already-in-use") {
       console.error("Error during registration:", error.message);
-      throw new Error(error.message);
+      throw new Error(
+        "This email is already registered. Please use another email or login."
+      );
+    } else {
+      console.error("Error during registration:", error.message);
+      throw new Error("Registration failed");
     }
-    throw new Error("An unknown error occurred during registration.");
   }
 };
 
-export const loginWithGoogle = async (auth) => {
+export const loginWithGoogle = async (
+  auth,
+  signInWithPopupFn = defaultSignInWithPopup
+) => {
   try {
     const provider = new GoogleAuthProvider();
-    const userCredential = await signInWithPopup(auth, provider);
+    const userCredential = await signInWithPopupFn(auth, provider);
     return userCredential.user;
   } catch (error) {
     if (error instanceof Error) {
