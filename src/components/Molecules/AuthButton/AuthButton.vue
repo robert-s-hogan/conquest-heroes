@@ -7,6 +7,7 @@
 
 <script setup>
 import { defineProps, defineEmits } from "vue";
+import { useRouter } from "vue-router";
 import Button from "@/components/atoms/Button/Button.vue";
 import { useAuth } from "@/composables/useAuth";
 
@@ -23,11 +24,15 @@ const props = defineProps({
 
 const emit = defineEmits(["login", "logout"]);
 const { login, logout } = useAuth();
+const router = useRouter(); // Access the router
 
 const handleAuthAction = () => {
   if (props.isAuthenticated) {
+    // If authenticated, logout
     logout().then(() => emit("logout"));
   } else {
+    // Redirect to the login page if not authenticated
+    router.push("/login"); // Adjust the route path if necessary
     login().then(() => emit("login"));
   }
 };

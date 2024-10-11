@@ -27,7 +27,11 @@ onAuthStateChanged(auth, (user) => {
 });
 
 const handleLogin = () => {
-  console.log("User logged in successfully");
+  if (!isAuthenticated.value) {
+    router.push("/login"); // Adjust the route path if necessary
+  } else {
+    console.log("User logged in successfully");
+  }
 };
 
 const handleLogout = () => {
