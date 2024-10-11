@@ -14,7 +14,7 @@ import Navigation from "@/molecules/Navigation/Navigation.vue";
 import AuthButton from "@/molecules/AuthButton/AuthButton.vue";
 import Link from "@/atoms/Link/Link.vue";
 import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "@/firebase/firebase";
+import { auth } from "@/firebase/firebaseConfig";
 
 const isAuthenticated = ref(false);
 

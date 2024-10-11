@@ -1,23 +1,29 @@
 import { defineConfig } from "cypress";
-import viteDevServer from "@cypress/vite-dev-server";
+import { fileURLToPath } from "url";
+import path from "path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export default defineConfig({
-  e2e: {
-    baseUrl: "http://localhost:5173",
-    setupNodeEvents(on, config) {
-      // Use Vite as the dev server for Cypress
-      on("dev-server:start", (options) => viteDevServer(options));
-    },
-    supportFile: "cypress/support/index.js",
-  },
   component: {
     devServer: {
       framework: "vue",
       bundler: "vite",
+      viteConfigFile: path.resolve(__dirname, "vite.config.js"),
     },
-    setupNodeEvents(on, config) {
-      on("dev-server:start", (options) => viteDevServer(options));
-    },
-    specPattern: "src/components/**/*.cy.{js,jsx,ts,tsx}",
+    specPattern: [
+      "src/components/**/**/*.cy.{js,jsx,ts,tsx}",
+      "src/services/**/**/*.cy.{js,jsx,ts,tsx}",
+    ],
+    viewportWidth: 1280,
+    viewportHeight: 720,
+    supportFile: "cypress/support/component.js",
+    browser: "edge",
+  },
+  e2e: {
+    baseUrl: "http://localhost:5173",
+    specPattern: "cypress/e2e/**/*.cy.{js,jsx,ts,tsx}",
+    supportFile: "cypress/support/index.js",
   },
 });

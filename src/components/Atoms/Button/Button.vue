@@ -1,36 +1,35 @@
 <template>
-  <button :class="buttonClasses" @click="onClick">
+  <button :class="buttonClasses" @click="handleClick">
     <slot />
   </button>
 </template>
 
 <script setup>
-import { defineProps, defineEmits, computed } from "vue";
+import { computed, defineProps, defineEmits } from "vue";
 
 const props = defineProps({
   variant: {
     type: String,
     default: "primary",
-    validator: (value) =>
-      ["primary", "secondary", "primaryOutlined"].includes(value),
   },
 });
 
 const emit = defineEmits(["click"]);
 
-const onClick = () => {
-  emit("click");
+const handleClick = () => {
+  emit("click"); // Emit click event here
 };
 
-// Dynamic button classes based on the variant
 const buttonClasses = computed(() => {
   switch (props.variant) {
+    case "primary":
+      return "bg-blue-500 text-white";
     case "secondary":
-      return "bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600";
+      return "bg-gray-500 text-white";
     case "primaryOutlined":
-      return "border border-blue-500 text-blue-500 px-4 py-2 rounded hover:bg-blue-500 hover:text-white";
+      return "border text-blue-500";
     default:
-      return "bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600";
+      return "";
   }
 });
 </script>
