@@ -17,7 +17,7 @@
         <div class="flex items-center justify-between mb-6">
           <Heading title="Conquest of Heroes v2.5 Framework" level="1" />
           <button
-            @click="openCampaignModal"
+            @click="isModalOpen = true"
             class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
           >
             Add Campaign
@@ -30,6 +30,13 @@
           title="Player Progression"
           :items="playerProgression"
         />
+
+        <!-- AddCampaignModal Component -->
+        <AddCampaignModal
+          :isOpen="isModalOpen"
+          @close="isModalOpen = false"
+          @submit="handleAddCampaign"
+        />
       </main>
     </div>
   </div>
@@ -39,13 +46,60 @@
 import { ref, onMounted } from "vue";
 import Heading from "@/atoms/Heading/Heading.vue";
 import DataSection from "@/organisms/DataSection/DataSection.vue";
+import AddCampaignModal from "@/organisms/AddCampaignModal/AddCampaignModal.vue";
 import { useCampaign } from "@/composables/useCampaign";
 
-const { fetchCampaigns } = useCampaign();
+const { fetchCampaigns, addCampaign } = useCampaign();
+const isModalOpen = ref(false);
 const playerProgression = ref([]);
 
-const openCampaignModal = () => {
-  // Logic to open a modal goes here
-  console.log("Open add campaign modal");
+const handleAddCampaign = async ({
+  name,
+  description,
+  playerExperienceStart,
+}) => {
+  console.log(
+    `Adding Campaign - Player Experience Start: ${playerExperienceStart}`
+  );
+  await addCampaign(name, description, playerExperienceStart);
+  isModalOpen.value = false;
+  await loadCampaigns();
 };
+
+const loadCampaigns = async () => {
+  const campaigns = await fetchCampaigns();
+  if (campaigns.length > 0) {
+    const campaign = campaigns[0];
+
+    // Ensure xpThresholds has valid data before accessing properties
+    const xpThresholds = campaign.xpThresholds || {
+      easy: 0,
+      medium: 0,
+      hard: 0,
+      deadly: 0,
+    };
+
+    playerProgression.value = [
+      { label: "Group Level", value: campaign.groupLevel },
+      {
+        label: "Player Start Experience",
+        value: campaign.playerStartExperience,
+      },
+      { label: "XP Threshold Easy", value: xpThresholds.easy },
+      { label: "XP Threshold Medium", value: xpThresholds.medium },
+      { label: "XP Threshold Hard", value: xpThresholds.hard },
+      { label: "XP Threshold Deadly", value: xpThresholds.deadly },
+      {
+        label: "Adventuring Day XP Limit",
+        value: campaign.adventuringDayXpLimit,
+      },
+      {
+        label: "Adventuring Day XP Start",
+        value: campaign.adventuringDayXpStart,
+      },
+    ];
+  }
+};
+
+onMounted(loadCampaigns);
 </script>

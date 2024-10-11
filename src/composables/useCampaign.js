@@ -1,40 +1,38 @@
 // src/composables/useCampaign.js
 import { ref } from "vue";
 import { db } from "@/firebase/firebaseConfig";
-import { collection, addDoc } from "firebase/firestore";
-import { fetchCampaigns as fetchCampaignsService } from "@/services/Campaign/campaignService"; // Import fetchCampaigns from the service
+import { collection, addDoc, getDocs } from "firebase/firestore";
+import { calculateXpFields } from "@/utils/xpTables";
 
 export function useCampaign() {
   const campaigns = ref([]);
   const campaignCollectionRef = collection(db, "campaigns");
 
-  const addCampaign = async (name, description, playerExperienceStart) => {
+  const addCampaign = async (name, description, startXp) => {
+    console.log(`Adding Campaign - Player Experience Start: ${startXp}`);
+    const {
+      groupLevel,
+      xpThresholds,
+      adventuringXpLimit,
+      adventuringDayXpStart,
+    } = calculateXpFields(startXp);
+
+    const newCampaign = {
+      name,
+      description,
+      playerStartExperience: startXp,
+      groupLevel,
+      xpThresholds,
+      adventuringDayXpLimit: adventuringXpLimit,
+      adventuringDayXpStart: adventuringDayXpStart,
+      createdAt: new Date().toISOString(),
+      status: "ongoing",
+    };
+
     try {
-      const newCampaign = {
-        name,
-        description,
-        playerExperienceStart,
-        levelOfPlayerCharactersStart: 1,
-        playerExperienceFinish: 0,
-        levelOfPlayerCharactersFinish: 1,
-        xpThresholdEasy: 100,
-        xpThresholdMedium: 200,
-        xpThresholdHard: 300,
-        xpThresholdDeadly: 400,
-        adventuringDayXpLimit: 1000,
-        adventuringDayXpUsed: 0,
-        percentAdventuringDayXpRemaining: 100,
-        shortRestNeededFirst: false,
-        shortRestNeededSecond: false,
-        shortRestCounterStart: 0,
-        shortRestCounterFinish: 0,
-        longRestNeeded: false,
-        timeSpentResting: 0,
-        status: "ongoing",
-        createdAt: new Date(),
-      };
       const campaignRef = await addDoc(campaignCollectionRef, newCampaign);
       campaigns.value.push({ id: campaignRef.id, ...newCampaign });
+      console.log("Campaign added with fields:", newCampaign);
     } catch (error) {
       console.error("Error adding campaign:", error);
     }
@@ -42,10 +40,24 @@ export function useCampaign() {
 
   const fetchCampaigns = async () => {
     try {
-      campaigns.value = await fetchCampaignsService(db);
+      const snapshot = await getDocs(campaignCollectionRef);
+      campaigns.value = snapshot.docs.map((doc) => {
+        const campaignData = doc.data();
+        const { groupLevel, adventuringXpLimit, adventuringDayXpStart } =
+          calculateXpFields(campaignData.playerStartExperience);
+
+        return {
+          id: doc.id,
+          ...campaignData,
+          groupLevel,
+          adventuringXpLimit,
+          adventuringDayXpStart,
+        };
+      });
       return campaigns.value;
     } catch (error) {
       console.error("Error fetching campaigns:", error);
+      campaigns.value = []; // Reset to an empty array on error
       return [];
     }
   };

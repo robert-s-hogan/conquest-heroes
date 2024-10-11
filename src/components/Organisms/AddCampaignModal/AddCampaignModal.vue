@@ -17,34 +17,29 @@
         type="number"
         placeholder="0"
       />
-      <Button :loading="isSubmitting" variant="primary" class="w-full mt-4"
-        >Add Campaign</Button
-      >
+      <Button :loading="isSubmitting" variant="primary" class="w-full mt-4">
+        Add Campaign
+      </Button>
     </form>
   </BaseModal>
 </template>
 
 <script setup>
-import { ref } from "vue";
-import { useCampaign } from "../../composables/useCampaign";
-import InputField from "../Atoms/InputField.vue";
-import BaseModal from "../Atoms/BaseModal.vue";
-import Button from "../Atoms/Button.vue"; // Assuming the Button component is in the Atoms folder
+import { ref, defineEmits, watch } from "vue";
+import InputField from "@/atoms/Input/Input.vue";
+import BaseModal from "@/atoms/Modal/Modal.vue";
+import Button from "@/atoms/Button/Button.vue";
 
-const { addCampaign } = useCampaign();
+const emit = defineEmits(["close", "submit"]);
 
 const isOpen = ref(false);
-const isSubmitting = ref(false); // Add loading state for button
+const isSubmitting = ref(false);
 const name = ref("");
 const description = ref("");
 const playerExperienceStart = ref(0);
 
-const openModal = () => {
-  isOpen.value = true;
-};
-
 const closeModal = () => {
-  isOpen.value = false;
+  emit("close");
   resetForm();
 };
 
@@ -54,9 +49,13 @@ const resetForm = () => {
   playerExperienceStart.value = 0;
 };
 
-const handleSubmit = async () => {
+const handleSubmit = () => {
   isSubmitting.value = true;
-  await addCampaign(name.value, description.value, playerExperienceStart.value);
+  emit("submit", {
+    name: name.value,
+    description: description.value,
+    playerExperienceStart: playerExperienceStart.value,
+  });
   isSubmitting.value = false;
   closeModal();
 };
