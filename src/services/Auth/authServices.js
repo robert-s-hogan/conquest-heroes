@@ -38,21 +38,24 @@ export const logout = async (auth, signOutFn = defaultSignOut) => {
   }
 };
 
-export const register = async (
-  auth,
-  email,
-  password,
-  createUserFn = defaultCreateUserWithEmailAndPassword
-) => {
+export const register = async (auth, email, password) => {
   try {
-    const userCredential = await createUserFn(auth, email, password);
-    return userCredential.user;
+    // Use auth.createUserWithEmailAndPassword so that the function can work with both real and mock auth
+    const userCredential = await auth.createUserWithEmailAndPassword(
+      email,
+      password
+    );
+    return userCredential;
   } catch (error) {
-    if (error instanceof Error) {
+    if (error.code === "auth/email-already-in-use") {
       console.error("Error during registration:", error.message);
-      throw new Error(error.message);
+      throw new Error(
+        "This email is already registered. Please use another email or login."
+      );
+    } else {
+      console.error("Error during registration:", error.message);
+      throw new Error("Registration failed");
     }
-    throw new Error("An unknown error occurred during registration.");
   }
 };
 

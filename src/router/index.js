@@ -17,18 +17,29 @@ const routes = [
     component: DefaultLayout,
     children: [{ path: "", component: Login }],
   },
-  {
-    path: "/dashboard",
-    component: AuthLayout,
-    meta: { requiresAuth: true },
-    children: [{ path: "", component: Dashboard }],
-  },
+
   {
     path: "/register",
     component: DefaultLayout,
     children: [
       { path: "", component: () => import("@/views/Register/Register.vue") },
     ],
+  },
+  {
+    path: "/reset-password",
+    component: DefaultLayout,
+    children: [
+      {
+        path: "",
+        component: () => import("@/views/ResetPassword/ResetPassword.vue"),
+      },
+    ],
+  },
+  {
+    path: "/dashboard",
+    component: AuthLayout,
+    meta: { requiresAuth: true },
+    children: [{ path: "", component: Dashboard }],
   },
 ];
 

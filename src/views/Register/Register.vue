@@ -70,30 +70,23 @@
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { auth } from "@/firebase/firebaseConfig";
-import { register, loginWithGoogle } from "@/services/Auth/authServices";
-import Button from "@/components/atoms/Button/Button.vue"; // Button atom
+import { register } from "@/services/authServices";
+import Button from "@/components/atoms/Button/Button.vue";
 
 const router = useRouter();
 const email = ref("");
 const password = ref("");
+const error = ref("");
 
-// Email Registration
+// Function to handle registration
 const handleRegister = async () => {
+  error.value = ""; // Clear previous errors
+
   try {
     await register(auth, email.value, password.value);
     router.push("/dashboard"); // Redirect to dashboard on successful registration
-  } catch (error) {
-    console.error("Registration error:", error.message);
-  }
-};
-
-// Google Registration
-const handleGoogleRegister = async () => {
-  try {
-    await loginWithGoogle(auth);
-    router.push("/dashboard"); // Redirect to dashboard on successful Google login
-  } catch (error) {
-    console.error("Google registration error:", error.message);
+  } catch (err) {
+    error.value = err.message; // Update UI with specific error message
   }
 };
 </script>

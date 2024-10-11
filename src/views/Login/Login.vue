@@ -42,8 +42,18 @@
           </Button>
         </div>
 
-        <!-- Link to Register Page -->
+        <!-- Add this below the Back to Login link -->
         <div class="text-center mt-4">
+          <router-link
+            to="/reset-password"
+            class="text-blue-500 hover:underline"
+          >
+            Forgot Password?
+          </router-link>
+        </div>
+
+        <!-- Link to Register Page -->
+        <div>
           <router-link to="/register" class="text-blue-500 hover:underline">
             Don't have an account? Register
           </router-link>

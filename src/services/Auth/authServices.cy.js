@@ -64,33 +64,33 @@ describe("Auth Service", () => {
 
   describe("register function", () => {
     it("should handle registration errors correctly", async () => {
-      const errorMessage = "Registration failed";
-      mockAuth.createUserWithEmailAndPassword.rejects(new Error(errorMessage));
+      // Simulate 'auth/email-already-in-use' error
+      mockAuth.createUserWithEmailAndPassword.rejects({
+        code: "auth/email-already-in-use",
+        message: "The email address is already in use.",
+      });
 
       try {
-        await register(
-          mockAuth,
-          "test@example.com",
-          "password123",
-          mockAuth.createUserWithEmailAndPassword
-        );
-        throw new Error("Expected promise to be rejected, but it was resolved");
+        await register(mockAuth, "existing-email@example.com", "password123");
+        throw new Error("Expected registration to fail");
       } catch (error) {
-        expect(error.message).to.equal(errorMessage);
+        expect(error.message).to.equal(
+          "This email is already registered. Please use another email or login."
+        );
       }
     });
 
     it("should return user on successful registration", async () => {
-      const mockUser = { uid: "12345", email: "test@example.com" };
-      mockAuth.createUserWithEmailAndPassword.resolves({ user: mockUser });
+      // Simulate a successful registration
+      const mockUserCredential = { user: { email: "new-user@example.com" } };
+      mockAuth.createUserWithEmailAndPassword.resolves(mockUserCredential);
 
-      const result = await register(
+      const userCredential = await register(
         mockAuth,
-        "test@example.com",
-        "password123",
-        mockAuth.createUserWithEmailAndPassword
+        "new-user@example.com",
+        "password123"
       );
-      expect(result).to.deep.equal(mockUser);
+      expect(userCredential).to.equal(mockUserCredential);
     });
   });
 
