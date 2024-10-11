@@ -62,8 +62,8 @@
 <script setup>
 import { ref } from "vue";
 import { useRouter } from "vue-router";
-import { auth } from "@/firebase/firebase";
-import { login, loginWithGoogle } from "@/services/authServices";
+import { auth } from "@/firebase/firebaseConfig";
+import { login, loginWithGoogle } from "@/services/Auth/authServices";
 
 const router = useRouter();
 const username = ref("");

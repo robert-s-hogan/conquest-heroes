@@ -8,3 +8,14 @@ Cypress.Commands.add("mount", mount);
 
 // Additional configuration or global commands can be added here
 import "../../src/assets/index.css";
+
+import sinon from "sinon";
+Cypress.sinon = sinon;
+
+// Ignore 404 errors for favicon requests
+Cypress.on("fail", (error, runnable) => {
+  if (error.message.includes("favicon.png")) {
+    return false;
+  }
+  throw error;
+});

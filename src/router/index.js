@@ -4,7 +4,7 @@ import Login from "@/views/Login/Login.vue";
 import Dashboard from "@/views/Dashboard/Dashboard.vue";
 import AuthLayout from "@/layouts/AuthLayout.vue";
 import DefaultLayout from "@/layouts/DefaultLayout.vue";
-import { auth } from "@/firebase/firebase";
+import { auth } from "@/firebase/firebaseConfig";
 
 const routes = [
   {

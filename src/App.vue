@@ -6,7 +6,7 @@
 
 <script setup>
 import { ref, onMounted } from "vue";
-import { auth } from "@/firebase/firebase";
+import { auth } from "@/firebase/firebaseConfig";
 import { onAuthStateChanged } from "firebase/auth";
 import { useRouter } from "vue-router";
 
