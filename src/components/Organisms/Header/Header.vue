@@ -4,37 +4,52 @@
       <Link to="/" class="text-lg font-bold">Home</Link>
       <Navigation :isAuthenticated="isAuthenticated" />
     </div>
+    <!-- Show Login Button if not authenticated -->
+    <Button variant="primary" @click="handleLogin" v-if="!isAuthenticated">
+      Login
+    </Button>
+    <!-- Show AuthButton component with logout option if authenticated -->
     <AuthButton
       :isAuthenticated="isAuthenticated"
-      @login="handleLogin"
       @logout="handleLogout"
+      v-else
     />
   </header>
 </template>
 
 <script setup>
 import { ref } from "vue";
+import Button from "@/atoms/Button/Button.vue";
 import Navigation from "@/molecules/Navigation/Navigation.vue";
 import AuthButton from "@/molecules/AuthButton/AuthButton.vue";
 import Link from "@/atoms/Link/Link.vue";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "@/firebase/firebaseConfig";
+import { useRouter } from "vue-router";
 
+const router = useRouter();
 const isAuthenticated = ref(false);
 
+// Listen to auth state changes to update the isAuthenticated status
 onAuthStateChanged(auth, (user) => {
   isAuthenticated.value = !!user;
+  if (!user) {
+    // Redirect to /login if the user is not authenticated
+    router.push("/login");
+  }
 });
 
 const handleLogin = () => {
-  if (!isAuthenticated.value) {
-    router.push("/login"); // Adjust the route path if necessary
-  } else {
-    console.log("User logged in successfully");
-  }
+  router.push("/login");
 };
 
-const handleLogout = () => {
-  console.log("User logged out successfully");
+const handleLogout = async () => {
+  try {
+    await signOut(auth);
+    console.log("User logged out successfully");
+    router.push("/login"); // Optional: Redirect to login page after logout
+  } catch (error) {
+    console.error("Logout failed:", error.message);
+  }
 };
 </script>

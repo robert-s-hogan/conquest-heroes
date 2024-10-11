@@ -70,7 +70,7 @@
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { auth } from "@/firebase/firebaseConfig";
-import { register } from "@/services/authServices";
+import { register } from "@/services/Auth/authServices";
 import Button from "@/components/atoms/Button/Button.vue";
 
 const router = useRouter();
