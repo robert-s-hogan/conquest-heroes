@@ -7,4 +7,4 @@ import { mount } from "cypress/vue";
 Cypress.Commands.add("mount", mount);
 
 // Additional configuration or global commands can be added here
-import "../../src/main.js";
+import "../../src/assets/index.css";

@@ -11,6 +11,7 @@ Cypress.on("uncaught:exception", (err, runnable) => {
   }
   // By default, let Cypress fail on other exceptions
 });
+console.log("Cypress support file loaded"); // Add this line
 
 // Import custom commands if you create any in `cypress/support/commands.js`
 import "./commands";
