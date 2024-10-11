@@ -4,7 +4,11 @@
       <Link to="/" class="text-lg font-bold">Home</Link>
       <Navigation :isAuthenticated="isAuthenticated" />
     </div>
-    <AuthButton :isAuthenticated="isAuthenticated" />
+    <AuthButton
+      :isAuthenticated="isAuthenticated"
+      @login="handleLogin"
+      @logout="handleLogout"
+    />
   </header>
 </template>
 
@@ -21,4 +25,12 @@ const isAuthenticated = ref(false);
 onAuthStateChanged(auth, (user) => {
   isAuthenticated.value = !!user;
 });
+
+const handleLogin = () => {
+  console.log("User logged in successfully");
+};
+
+const handleLogout = () => {
+  console.log("User logged out successfully");
+};
 </script>

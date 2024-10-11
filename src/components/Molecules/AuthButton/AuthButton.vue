@@ -1,18 +1,34 @@
+<!-- src/components/molecules/AuthButton/AuthButton.vue -->
 <template>
-  <nav class="space-x-4">
-    <Link v-if="isAuthenticated" to="/dashboard">Dashboard</Link>
-    <!-- Additional links can be added here -->
-  </nav>
+  <Button :variant="variant" @click="handleAuthAction">
+    {{ isAuthenticated ? "Logout" : "Login" }}
+  </Button>
 </template>
 
 <script setup>
-import Link from "@/atoms/Link/Link.vue";
-import { defineProps } from "vue";
+import { defineProps, defineEmits } from "vue";
+import Button from "@/components/atoms/Button/Button.vue";
+import { useAuth } from "@/composables/useAuth";
 
 const props = defineProps({
+  variant: {
+    type: String,
+    default: "primary",
+  },
   isAuthenticated: {
     type: Boolean,
-    default: false,
+    required: true,
   },
 });
+
+const emit = defineEmits(["login", "logout"]);
+const { login, logout } = useAuth();
+
+const handleAuthAction = () => {
+  if (props.isAuthenticated) {
+    logout().then(() => emit("logout"));
+  } else {
+    login().then(() => emit("login"));
+  }
+};
 </script>
