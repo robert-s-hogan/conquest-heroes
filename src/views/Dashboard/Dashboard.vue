@@ -14,9 +14,22 @@
         </nav>
       </aside>
       <main class="flex-1 p-4">
-        <Heading title="Conquest of Heroes v2.5 Framework" level="1" />
+        <div class="flex items-center justify-between mb-6">
+          <Heading title="Conquest of Heroes v2.5 Framework" level="1" />
+          <button
+            @click="openCampaignModal"
+            class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+          >
+            Add Campaign
+          </button>
+        </div>
 
-        <DataSection title="Player Progression" :items="playerProgression" />
+        <!-- Conditionally render DataSection only if there is a campaign -->
+        <DataSection
+          v-if="playerProgression.length > 0"
+          title="Player Progression"
+          :items="playerProgression"
+        />
       </main>
     </div>
   </div>
@@ -31,24 +44,8 @@ import { useCampaign } from "@/composables/useCampaign";
 const { fetchCampaigns } = useCampaign();
 const playerProgression = ref([]);
 
-onMounted(async () => {
-  const campaigns = await fetchCampaigns();
-  if (campaigns.length > 0) {
-    const campaign = campaigns[0]; // Select the first campaign for display
-    playerProgression.value = [
-      {
-        label: "Level of Player Characters - Start",
-        value: campaign.levelOfPlayerCharactersStart,
-      },
-      {
-        label: "Player Experience - Start",
-        value: campaign.playerExperienceStart,
-      },
-      { label: "XP Threshold Easy", value: campaign.xpThresholdEasy },
-      { label: "XP Threshold Medium", value: campaign.xpThresholdMedium },
-      { label: "XP Threshold Hard", value: campaign.xpThresholdHard },
-      { label: "XP Threshold Deadly", value: campaign.xpThresholdDeadly },
-    ];
-  }
-});
+const openCampaignModal = () => {
+  // Logic to open a modal goes here
+  console.log("Open add campaign modal");
+};
 </script>
