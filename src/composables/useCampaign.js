@@ -10,6 +10,7 @@ export function useCampaign() {
 
   const addCampaign = async (name, description, startXp) => {
     console.log(`Adding Campaign - Player Experience Start: ${startXp}`);
+
     const {
       groupLevel,
       xpThresholds,
@@ -57,7 +58,7 @@ export function useCampaign() {
       return campaigns.value;
     } catch (error) {
       console.error("Error fetching campaigns:", error);
-      campaigns.value = []; // Reset to an empty array on error
+      campaigns.value = [];
       return [];
     }
   };

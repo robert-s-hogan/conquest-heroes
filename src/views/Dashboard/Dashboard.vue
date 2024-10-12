@@ -71,13 +71,10 @@ const loadCampaigns = async () => {
   if (campaigns.length > 0) {
     const campaign = campaigns[0];
 
-    // Ensure xpThresholds has valid data before accessing properties
-    const xpThresholds = campaign.xpThresholds || {
-      easy: 0,
-      medium: 0,
-      hard: 0,
-      deadly: 0,
-    };
+    const percentAdventuringDayXpRemaining = (
+      (campaign.adventuringDayXpStart / campaign.adventuringDayXpLimit) *
+      100
+    ).toFixed(0);
 
     playerProgression.value = [
       { label: "Group Level", value: campaign.groupLevel },
@@ -85,10 +82,10 @@ const loadCampaigns = async () => {
         label: "Player Start Experience",
         value: campaign.playerStartExperience,
       },
-      { label: "XP Threshold Easy", value: xpThresholds.easy },
-      { label: "XP Threshold Medium", value: xpThresholds.medium },
-      { label: "XP Threshold Hard", value: xpThresholds.hard },
-      { label: "XP Threshold Deadly", value: xpThresholds.deadly },
+      { label: "XP Threshold Easy", value: campaign.xpThresholds.easy },
+      { label: "XP Threshold Medium", value: campaign.xpThresholds.medium },
+      { label: "XP Threshold Hard", value: campaign.xpThresholds.hard },
+      { label: "XP Threshold Deadly", value: campaign.xpThresholds.deadly },
       {
         label: "Adventuring Day XP Limit",
         value: campaign.adventuringDayXpLimit,
@@ -96,6 +93,10 @@ const loadCampaigns = async () => {
       {
         label: "Adventuring Day XP Start",
         value: campaign.adventuringDayXpStart,
+      },
+      {
+        label: "Percent Adventuring Day XP Remaining",
+        value: `${percentAdventuringDayXpRemaining}%`,
       },
     ];
   }
