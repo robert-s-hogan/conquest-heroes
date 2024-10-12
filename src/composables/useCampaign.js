@@ -3,6 +3,7 @@ import { ref } from "vue";
 import { db } from "@/firebase/firebaseConfig";
 import { collection, addDoc, getDocs } from "firebase/firestore";
 import { calculateXpFields } from "@/utils/xpTables";
+import { deleteCampaign as deleteCampaignService } from "@/services/Campaign/campaignService";
 
 export function useCampaign() {
   const campaigns = ref([]);
@@ -100,9 +101,22 @@ export function useCampaign() {
     }
   };
 
+  const deleteCampaign = async (campaignId) => {
+    try {
+      await deleteCampaignService(db, campaignId);
+      campaigns.value = campaigns.value.filter(
+        (campaign) => campaign.id !== campaignId
+      );
+      console.log("Campaign deleted:", campaignId);
+    } catch (error) {
+      console.error("Error deleting campaign:", error);
+    }
+  };
+
   return {
     campaigns,
     addCampaign,
     fetchCampaigns,
+    deleteCampaign,
   };
 }

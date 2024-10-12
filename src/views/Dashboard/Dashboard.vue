@@ -17,11 +17,20 @@
         <div class="flex items-center justify-between mb-6">
           <Heading title="Conquest of Heroes v2.5 Framework" level="1" />
           <button
+            v-if="playerProgression.length === 0"
             @click="isModalOpen = true"
             class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
           >
             Add Campaign
           </button>
+          <Button
+            v-else
+            variant="secondary"
+            @click="handleDeleteCampaign"
+            :loading="isDeleting"
+          >
+            Delete Campaign
+          </Button>
         </div>
 
         <!-- Conditionally render DataSection only if there is a campaign -->
@@ -47,11 +56,13 @@ import { ref, onMounted } from "vue";
 import Heading from "@/atoms/Heading/Heading.vue";
 import DataSection from "@/organisms/DataSection/DataSection.vue";
 import AddCampaignModal from "@/organisms/AddCampaignModal/AddCampaignModal.vue";
+import Button from "@/components/Atoms/Button/Button.vue";
 import { useCampaign } from "@/composables/useCampaign";
 
-const { fetchCampaigns, addCampaign } = useCampaign();
+const { fetchCampaigns, addCampaign, deleteCampaign } = useCampaign();
 const isModalOpen = ref(false);
 const playerProgression = ref([]);
+const isDeleting = ref(false);
 
 const handleAddCampaign = async ({
   name,
@@ -66,6 +77,18 @@ const handleAddCampaign = async ({
   await loadCampaigns();
 };
 
+const handleDeleteCampaign = async () => {
+  if (playerProgression.value.length > 0) {
+    const campaignId = playerProgression.value[0].id; // Assuming only one campaign
+
+    isDeleting.value = true;
+    await deleteCampaign(campaignId);
+    isDeleting.value = false;
+
+    playerProgression.value = []; // Clear out local campaign data
+  }
+};
+
 const loadCampaigns = async () => {
   const campaigns = await fetchCampaigns();
   if (campaigns.length > 0) {
@@ -77,7 +100,7 @@ const loadCampaigns = async () => {
     ).toFixed(0);
 
     playerProgression.value = [
-      { label: "Group Level", value: campaign.groupLevel },
+      { label: "Group Level", value: campaign.groupLevel, id: campaign.id },
       {
         label: "Player Start Experience",
         value: campaign.playerStartExperience,
@@ -106,10 +129,7 @@ const loadCampaigns = async () => {
         label: "Short Rest Needed? - Second One (35%)",
         value: campaign.shortRestNeededSecond ? "Yes" : "No",
       },
-      {
-        label: "Short Rest Counter",
-        value: campaign.shortRestCounter,
-      },
+      { label: "Short Rest Counter", value: campaign.shortRestCounter },
       {
         label: "Long Rest Needed?",
         value: campaign.longRestNeeded ? "Yes" : "No",
