@@ -10,41 +10,48 @@ export function useCampaign() {
   const campaignCollectionRef = collection(db, "campaigns");
 
   const addCampaign = async (name, description, startXp) => {
-    console.log(`Adding Campaign - Player Experience Start: ${startXp}`);
-
     const {
       groupLevel,
       xpThresholds,
-      adventuringDayXpLimit, // Use consistent naming based on xpTables
-      adventuringDayXpStart,
-    } = calculateXpFields(startXp);
+      adventuringDayXpLimit,
+      currentAdventuringDayXp,
+    } = calculateXpFields(Number(startXp)); // Convert startXp to a number
 
-    // Check for undefined fields and set defaults
+    // Correctly assign variables and ensure numeric types where needed
     const newCampaign = {
-      name,
-      description,
-      playerStartExperience: startXp,
+      name: String(name), // Ensure name is a string
+      description: String(description), // Ensure description is a string
+      playerStartExperience: Number(startXp), // Ensure numeric type for experience
       groupLevel,
       xpThresholds,
-      adventuringDayXpLimit: adventuringDayXpLimit ?? 1700,
-      adventuringDayXpStart: adventuringDayXpStart ?? 1700,
-      shortRestCounter: 2, // Default to 2 on creation
+      adventuringDayXpLimit,
+      currentAdventuringDayXp,
+      shortRestCounter: 2, // Default to 2
       longRestNeeded: false,
-      createdAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(), // Store date as ISO string
       status: "ongoing",
+      timeSpentResting: 0,
+      deathPenaltyMultiplier: 0, // Initial value
     };
 
     try {
       const campaignRef = await addDoc(campaignCollectionRef, newCampaign);
-      campaigns.value.push({ id: campaignRef.id, ...newCampaign });
-      console.log("Campaign added with fields:", newCampaign);
+      const campaignWithId = { id: campaignRef.id, ...newCampaign };
+      campaigns.value.push(campaignWithId); // Store campaign with ID in local state
+      console.log("Campaign added with fields:", campaignWithId);
     } catch (error) {
       console.error("Error adding campaign:", error);
     }
   };
 
   const calculateDerivedFields = (campaign) => {
-    const adventuringDayXpRemaining = campaign.adventuringDayXpStart;
+    const adventuringDayXpRemaining =
+      campaign.adventuringDayXpLimit - campaign.adventuringDayXpUsed;
+    const percentAdventuringDayXpRemaining = (
+      (adventuringDayXpRemaining / campaign.adventuringDayXpLimit) *
+      100
+    ).toFixed(0);
+
     const firstRestThreshold = 0.68 * campaign.adventuringDayXpLimit;
     const secondRestThreshold = 0.35 * campaign.adventuringDayXpLimit;
 
@@ -66,6 +73,7 @@ export function useCampaign() {
       shortRestNeededSecond,
       longRestNeeded,
       shortRestCounter,
+      percentAdventuringDayXpRemaining,
     };
   };
 
@@ -103,7 +111,10 @@ export function useCampaign() {
 
   const deleteCampaign = async (campaignId) => {
     try {
-      await deleteCampaignService(db, campaignId);
+      if (!campaignId) {
+        throw new Error("Invalid campaign ID");
+      }
+      await deleteCampaignService(db, campaignId); // Pass in the ID directly
       campaigns.value = campaigns.value.filter(
         (campaign) => campaign.id !== campaignId
       );
@@ -113,10 +124,38 @@ export function useCampaign() {
     }
   };
 
+  const addEncounter = async (campaignId, encounterData) => {
+    try {
+      const campaignIndex = campaigns.value.findIndex(
+        (c) => c.id === campaignId
+      );
+      if (campaignIndex !== -1) {
+        const campaign = campaigns.value[campaignIndex];
+        const updatedAdventuringDayXp =
+          campaign.currentAdventuringDayXp - encounterData.encounterExperience;
+
+        // Ensure it does not go negative
+        campaign.currentAdventuringDayXp = Math.max(0, updatedAdventuringDayXp);
+
+        // Update campaign in Firebase and local data structure
+        await updateCampaignInFirebase(campaignId, {
+          currentAdventuringDayXp: campaign.currentAdventuringDayXp,
+        });
+        campaigns.value[campaignIndex].currentAdventuringDayXp =
+          campaign.currentAdventuringDayXp;
+
+        console.log("Encounter added and campaign updated:", campaign);
+      }
+    } catch (error) {
+      console.error("Error adding encounter:", error);
+    }
+  };
+
   return {
     campaigns,
     addCampaign,
     fetchCampaigns,
     deleteCampaign,
+    addEncounter,
   };
 }

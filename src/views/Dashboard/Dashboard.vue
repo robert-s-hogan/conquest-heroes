@@ -69,9 +69,6 @@ const handleAddCampaign = async ({
   description,
   playerExperienceStart,
 }) => {
-  console.log(
-    `Adding Campaign - Player Experience Start: ${playerExperienceStart}`
-  );
   await addCampaign(name, description, playerExperienceStart);
   isModalOpen.value = false;
   await loadCampaigns();
@@ -80,11 +77,9 @@ const handleAddCampaign = async ({
 const handleDeleteCampaign = async () => {
   if (playerProgression.value.length > 0) {
     const campaignId = playerProgression.value[0].id; // Assuming only one campaign
-
     isDeleting.value = true;
     await deleteCampaign(campaignId);
     isDeleting.value = false;
-
     playerProgression.value = []; // Clear out local campaign data
   }
 };
@@ -93,11 +88,6 @@ const loadCampaigns = async () => {
   const campaigns = await fetchCampaigns();
   if (campaigns.length > 0) {
     const campaign = campaigns[0];
-
-    const percentAdventuringDayXpRemaining = (
-      (campaign.adventuringDayXpStart / campaign.adventuringDayXpLimit) *
-      100
-    ).toFixed(0);
 
     playerProgression.value = [
       { label: "Group Level", value: campaign.groupLevel, id: campaign.id },
@@ -114,12 +104,12 @@ const loadCampaigns = async () => {
         value: campaign.adventuringDayXpLimit,
       },
       {
-        label: "Adventuring Day XP Start",
-        value: campaign.adventuringDayXpStart,
+        label: "Adventuring Day XP Used",
+        value: campaign.adventuringDayXpUsed,
       },
       {
         label: "Percent Adventuring Day XP Remaining",
-        value: `${percentAdventuringDayXpRemaining}%`,
+        value: `${campaign.percentAdventuringDayXpRemaining}%`,
       },
       {
         label: "Short Rest Needed? - First One (68%)",
@@ -133,6 +123,20 @@ const loadCampaigns = async () => {
       {
         label: "Long Rest Needed?",
         value: campaign.longRestNeeded ? "Yes" : "No",
+      },
+      {
+        label: "Time Spent Resting",
+        value: `${campaign.timeSpentResting} hours`,
+      },
+      {
+        label: "Death Penalty Multiplier - Increase",
+        value: `${campaign.deathPenaltyMultiplier}%`,
+      },
+      { label: "", value: "" },
+      {
+        label: "Adventuring Day XP Limit Difference",
+        value:
+          campaign.adventuringDayXpLimit - campaign.currentAdventuringDayXp,
       },
     ];
   }

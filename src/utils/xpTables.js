@@ -25,7 +25,8 @@ export const xpThresholdsByCharLvl = {
 };
 
 // Recommended XP limits for a full adventuring day, by level
-export const adventuringDayXpLimit = [
+export const adventuringDayXpLimits = [
+  // Renamed from adventuringDayXpLimit
   { level: 1, xp: 300 },
   { level: 2, xp: 600 },
   { level: 3, xp: 1200 },
@@ -73,7 +74,6 @@ export const characterAdvancementTable = [
 ];
 
 export function calculateXpFields(playerStartExperience) {
-  // Total XP required to level up, by level
   const xpTotalToLevelTable = [
     { xpStart: 0, xpEnd: 299, xpNeeded: 300, xpTotal: 299, level: 1 },
     { xpStart: 300, xpEnd: 899, xpNeeded: 600, xpTotal: 1199, level: 2 },
@@ -165,8 +165,7 @@ export function calculateXpFields(playerStartExperience) {
 
   let groupLevel = 1;
   let xpThresholds = { easy: 0, medium: 0, hard: 0, deadly: 0 };
-  let adventuringDayXpLimitValue = 0;
-  let adventuringDayXpStart = 0;
+  let adventuringDayXpLimit = 0;
 
   for (const levelData of xpTotalToLevelTable) {
     if (
@@ -181,28 +180,20 @@ export function calculateXpFields(playerStartExperience) {
         deadly: 0,
       };
 
-      // Find the XP limit for the day based on the group level
-      const xpLimitData = adventuringDayXpLimit.find(
+      // Corrected to use adventuringDayXpLimits
+      const xpLimitData = adventuringDayXpLimits.find(
         (dayXp) => dayXp.level === groupLevel
       );
 
-      adventuringDayXpLimitValue = xpLimitData ? xpLimitData.xp : 0;
-      adventuringDayXpStart = adventuringDayXpLimitValue;
-
+      adventuringDayXpLimit = xpLimitData ? xpLimitData.xp : 0;
       break;
     }
   }
 
-  console.log(
-    `Final Calculated Values: Group Level: ${groupLevel}, XP Thresholds: ${JSON.stringify(
-      xpThresholds
-    )}, Adventuring Day XP Limit: ${adventuringDayXpLimitValue}, Adventuring Day XP Start: ${adventuringDayXpStart}`
-  );
-
   return {
     groupLevel,
     xpThresholds,
-    adventuringDayXpLimit: adventuringDayXpLimitValue,
-    adventuringDayXpStart,
+    adventuringDayXpLimit,
+    currentAdventuringDayXp: adventuringDayXpLimit,
   };
 }
