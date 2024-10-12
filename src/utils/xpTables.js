@@ -162,9 +162,10 @@ export function calculateXpFields(playerStartExperience) {
     },
     { xpStart: 355000, xpEnd: null, xpNeeded: null, xpTotal: null, level: 20 },
   ];
+
   let groupLevel = 1;
   let xpThresholds = { easy: 0, medium: 0, hard: 0, deadly: 0 };
-  let adventuringXpLimit = 0;
+  let adventuringDayXpLimitValue = 0;
   let adventuringDayXpStart = 0;
 
   for (const levelData of xpTotalToLevelTable) {
@@ -179,12 +180,14 @@ export function calculateXpFields(playerStartExperience) {
         hard: 0,
         deadly: 0,
       };
-      adventuringXpLimit =
-        adventuringDayXpLimit.find((dayXp) => dayXp.level === groupLevel)?.xp ||
-        0;
 
-      // Set adventuringDayXpStart to match adventuringXpLimit initially
-      adventuringDayXpStart = adventuringXpLimit;
+      // Find the XP limit for the day based on the group level
+      const xpLimitData = adventuringDayXpLimit.find(
+        (dayXp) => dayXp.level === groupLevel
+      );
+
+      adventuringDayXpLimitValue = xpLimitData ? xpLimitData.xp : 0;
+      adventuringDayXpStart = adventuringDayXpLimitValue;
 
       break;
     }
@@ -193,13 +196,13 @@ export function calculateXpFields(playerStartExperience) {
   console.log(
     `Final Calculated Values: Group Level: ${groupLevel}, XP Thresholds: ${JSON.stringify(
       xpThresholds
-    )}, Adventuring XP Limit: ${adventuringXpLimit}, Adventuring Day XP Start: ${adventuringDayXpStart}`
+    )}, Adventuring Day XP Limit: ${adventuringDayXpLimitValue}, Adventuring Day XP Start: ${adventuringDayXpStart}`
   );
 
   return {
     groupLevel,
     xpThresholds,
-    adventuringXpLimit,
+    adventuringDayXpLimit: adventuringDayXpLimitValue,
     adventuringDayXpStart,
   };
 }

@@ -98,6 +98,22 @@ const loadCampaigns = async () => {
         label: "Percent Adventuring Day XP Remaining",
         value: `${percentAdventuringDayXpRemaining}%`,
       },
+      {
+        label: "Short Rest Needed? - First One (68%)",
+        value: campaign.shortRestNeededFirst ? "Yes" : "No",
+      },
+      {
+        label: "Short Rest Needed? - Second One (35%)",
+        value: campaign.shortRestNeededSecond ? "Yes" : "No",
+      },
+      {
+        label: "Short Rest Counter",
+        value: campaign.shortRestCounter,
+      },
+      {
+        label: "Long Rest Needed?",
+        value: campaign.longRestNeeded ? "Yes" : "No",
+      },
     ];
   }
 };
