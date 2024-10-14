@@ -16,15 +16,27 @@
       <main class="flex-1 p-4">
         <div class="flex items-center justify-between mb-6">
           <Heading title="Conquest of Heroes v2.5 Framework" level="1" />
+
+          <!-- Add Campaign Button -->
           <button
-            v-if="playerProgression.length === 0"
+            v-if="!currentCampaign"
             @click="isModalOpen = true"
             class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
           >
             Add Campaign
           </button>
-          <Button
+
+          <!-- Edit Campaign Button -->
+          <button
             v-else
+            @click="openEditModal(currentCampaign)"
+            class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          >
+            Edit Campaign
+          </button>
+
+          <!-- Delete Campaign Button -->
+          <Button
             variant="secondary"
             @click="handleDeleteCampaign"
             :loading="isDeleting"
@@ -46,6 +58,15 @@
           @close="isModalOpen = false"
           @submit="handleAddCampaign"
         />
+
+        <!-- EditCampaignModal Component -->
+        <EditCampaignModal
+          v-if="currentCampaign"
+          :isOpen="isEditModalOpen"
+          :campaign="currentCampaign"
+          @close="isEditModalOpen = false"
+          @update="handleEditCampaign"
+        />
       </main>
     </div>
   </div>
@@ -56,12 +77,20 @@ import { ref, onMounted } from "vue";
 import Heading from "@/atoms/Heading/Heading.vue";
 import DataSection from "@/organisms/DataSection/DataSection.vue";
 import AddCampaignModal from "@/organisms/AddCampaignModal/AddCampaignModal.vue";
+import EditCampaignModal from "@/organisms/EditCampaignModal/EditCampaignModal.vue";
 import Button from "@/components/Atoms/Button/Button.vue";
 import { useCampaign } from "@/composables/useCampaign";
 
-const { fetchCampaigns, addCampaign, deleteCampaign } = useCampaign();
+const {
+  fetchCampaigns,
+  addCampaign,
+  updateCampaignInFirebase,
+  deleteCampaign,
+} = useCampaign();
 const isModalOpen = ref(false);
+const isEditModalOpen = ref(false);
 const playerProgression = ref([]);
+const currentCampaign = ref(null);
 const isDeleting = ref(false);
 
 const handleAddCampaign = async ({ name, startXp }) => {
@@ -70,13 +99,30 @@ const handleAddCampaign = async ({ name, startXp }) => {
   await loadCampaigns();
 };
 
+const handleEditCampaign = async (updatedCampaign) => {
+  await updateCampaignInFirebase(updatedCampaign.id, {
+    campaignName: updatedCampaign.campaignName,
+    deathPenaltyMultiplier: updatedCampaign.deathPenaltyMultiplier,
+    groupExperience: updatedCampaign.groupExperience,
+    cumulativeGoldEarned: updatedCampaign.cumulativeGoldEarned,
+  });
+  isEditModalOpen.value = false;
+  await loadCampaigns();
+};
+
+const openEditModal = (campaign) => {
+  currentCampaign.value = campaign;
+  isEditModalOpen.value = true;
+};
+
 const handleDeleteCampaign = async () => {
-  if (playerProgression.value.length > 0) {
-    const campaignId = playerProgression.value[0].id; // Assuming only one campaign
+  if (currentCampaign.value) {
+    const campaignId = currentCampaign.value.id;
     isDeleting.value = true;
     await deleteCampaign(campaignId);
     isDeleting.value = false;
-    playerProgression.value = []; // Clear out local campaign data
+    playerProgression.value = [];
+    currentCampaign.value = null; // Clear current campaign after deletion
   }
 };
 
@@ -84,6 +130,7 @@ const loadCampaigns = async () => {
   const campaigns = await fetchCampaigns();
   if (campaigns.length > 0) {
     const campaign = campaigns[0];
+    currentCampaign.value = campaign;
 
     playerProgression.value = [
       { label: "Group Level", value: campaign.groupLevel, id: campaign.id },
@@ -98,6 +145,8 @@ const loadCampaigns = async () => {
       { label: "Cumulative Gold Earned", value: campaign.cumulativeGoldEarned },
       { label: "Current Group Experience", value: campaign.groupExperience },
     ];
+  } else {
+    currentCampaign.value = null;
   }
 };
 
