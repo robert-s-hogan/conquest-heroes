@@ -14,7 +14,6 @@
 </template>
 
 <script setup>
-import { defineProps } from "vue";
 import LabelText from "@/atoms/LabelText/LabelText.vue";
 import DataRow from "@/molecules/DataRow/DataRow.vue";
 
