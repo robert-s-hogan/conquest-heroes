@@ -37,6 +37,7 @@
 
           <!-- Delete Campaign Button -->
           <Button
+            v-if="currentCampaign"
             variant="secondary"
             @click="handleDeleteCampaign"
             :loading="isDeleting"
