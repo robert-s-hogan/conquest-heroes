@@ -1,7 +1,13 @@
 // src/composables/useCampaign.js
 import { ref } from "vue";
 import { db } from "@/firebase/firebaseConfig";
-import { collection, addDoc, getDocs } from "firebase/firestore";
+import {
+  collection,
+  addDoc,
+  getDocs,
+  doc,
+  updateDoc,
+} from "firebase/firestore";
 import { calculateXpFields } from "@/utils/xpTables";
 import { deleteCampaign as deleteCampaignService } from "@/services/Campaign/campaignService";
 
@@ -9,35 +15,30 @@ export function useCampaign() {
   const campaigns = ref([]);
   const campaignCollectionRef = collection(db, "campaigns");
 
-  const addCampaign = async (name, description, startXp) => {
-    const {
-      groupLevel,
-      xpThresholds,
-      adventuringDayXpLimit,
-      currentAdventuringDayXp,
-    } = calculateXpFields(Number(startXp)); // Convert startXp to a number
+  const addCampaign = async (campaignName, startXp) => {
+    const { groupLevel, xpThresholds, adventuringDayXpLimit } =
+      calculateXpFields(Number(startXp));
 
-    // Correctly assign variables and ensure numeric types where needed
     const newCampaign = {
-      name: String(name), // Ensure name is a string
-      description: String(description), // Ensure description is a string
-      playerStartExperience: Number(startXp), // Ensure numeric type for experience
-      groupLevel,
-      xpThresholds,
+      campaignName: String(campaignName),
+      startDate: new Date().toISOString(),
+      deathPenaltyMultiplier: 0,
       adventuringDayXpLimit,
-      currentAdventuringDayXp,
-      shortRestCounter: 2, // Default to 2
-      longRestNeeded: false,
-      createdAt: new Date().toISOString(), // Store date as ISO string
-      status: "ongoing",
-      timeSpentResting: 0,
-      deathPenaltyMultiplier: 0, // Initial value
+      cumulativeGoldEarned: 0, // Initial gold
+      groupExperience: Number(startXp),
+      levelOfPlayerCharacters: groupLevel,
+      currentAdventuringDayXp: adventuringDayXpLimit,
+      shortRestCounter: 2, // Initial value
+      xpThresholds, // Ensure xpThresholds are included here
     };
 
+    const derivedFields = calculateDerivedFields(newCampaign);
+    const campaignData = { ...newCampaign, ...derivedFields };
+
     try {
-      const campaignRef = await addDoc(campaignCollectionRef, newCampaign);
-      const campaignWithId = { id: campaignRef.id, ...newCampaign };
-      campaigns.value.push(campaignWithId); // Store campaign with ID in local state
+      const campaignRef = await addDoc(campaignCollectionRef, campaignData);
+      const campaignWithId = { id: campaignRef.id, ...campaignData };
+      campaigns.value.push(campaignWithId);
       console.log("Campaign added with fields:", campaignWithId);
     } catch (error) {
       console.error("Error adding campaign:", error);
@@ -45,8 +46,7 @@ export function useCampaign() {
   };
 
   const calculateDerivedFields = (campaign) => {
-    const adventuringDayXpRemaining =
-      campaign.adventuringDayXpLimit - campaign.adventuringDayXpUsed;
+    const adventuringDayXpRemaining = campaign.currentAdventuringDayXp;
     const percentAdventuringDayXpRemaining = (
       (adventuringDayXpRemaining / campaign.adventuringDayXpLimit) *
       100
@@ -55,24 +55,19 @@ export function useCampaign() {
     const firstRestThreshold = 0.68 * campaign.adventuringDayXpLimit;
     const secondRestThreshold = 0.35 * campaign.adventuringDayXpLimit;
 
+    // Safely check for `xpThresholds` and assign a default in case `easy` is undefined
+    const easyThreshold = campaign.xpThresholds?.easy ?? 500;
+
     const shortRestNeededFirst =
       adventuringDayXpRemaining <= firstRestThreshold;
     const shortRestNeededSecond =
       adventuringDayXpRemaining <= secondRestThreshold;
-    const longRestNeeded =
-      adventuringDayXpRemaining < campaign.xpThresholds.easy;
-
-    // Adjust short rest counter if a rest is needed
-    let shortRestCounter = campaign.shortRestCounter;
-    if (shortRestNeededFirst || shortRestNeededSecond) {
-      shortRestCounter = Math.max(0, shortRestCounter - 1);
-    }
+    const longRestNeeded = adventuringDayXpRemaining < easyThreshold;
 
     return {
       shortRestNeededFirst,
       shortRestNeededSecond,
       longRestNeeded,
-      shortRestCounter,
       percentAdventuringDayXpRemaining,
     };
   };
@@ -82,22 +77,21 @@ export function useCampaign() {
       const snapshot = await getDocs(campaignCollectionRef);
       campaigns.value = snapshot.docs.map((doc) => {
         const campaignData = doc.data();
-        const { groupLevel, adventuringDayXpLimit, adventuringDayXpStart } =
-          calculateXpFields(campaignData.playerStartExperience);
+        const { groupLevel, xpThresholds, adventuringDayXpLimit } =
+          calculateXpFields(campaignData.groupExperience);
 
         const derivedFields = calculateDerivedFields({
           ...campaignData,
+          xpThresholds,
           adventuringDayXpLimit,
-          adventuringDayXpStart,
-          shortRestCounter: campaignData.shortRestCounter ?? 2,
         });
 
         return {
           id: doc.id,
           ...campaignData,
           groupLevel,
+          xpThresholds,
           adventuringDayXpLimit,
-          adventuringDayXpStart,
           ...derivedFields,
         };
       });
@@ -114,7 +108,7 @@ export function useCampaign() {
       if (!campaignId) {
         throw new Error("Invalid campaign ID");
       }
-      await deleteCampaignService(db, campaignId); // Pass in the ID directly
+      await deleteCampaignService(db, campaignId);
       campaigns.value = campaigns.value.filter(
         (campaign) => campaign.id !== campaignId
       );
@@ -124,30 +118,12 @@ export function useCampaign() {
     }
   };
 
-  const addEncounter = async (campaignId, encounterData) => {
+  const updateCampaignInFirebase = async (campaignId, updatedData) => {
     try {
-      const campaignIndex = campaigns.value.findIndex(
-        (c) => c.id === campaignId
-      );
-      if (campaignIndex !== -1) {
-        const campaign = campaigns.value[campaignIndex];
-        const updatedAdventuringDayXp =
-          campaign.currentAdventuringDayXp - encounterData.encounterExperience;
-
-        // Ensure it does not go negative
-        campaign.currentAdventuringDayXp = Math.max(0, updatedAdventuringDayXp);
-
-        // Update campaign in Firebase and local data structure
-        await updateCampaignInFirebase(campaignId, {
-          currentAdventuringDayXp: campaign.currentAdventuringDayXp,
-        });
-        campaigns.value[campaignIndex].currentAdventuringDayXp =
-          campaign.currentAdventuringDayXp;
-
-        console.log("Encounter added and campaign updated:", campaign);
-      }
+      const campaignDocRef = doc(db, "campaigns", campaignId);
+      await updateDoc(campaignDocRef, updatedData);
     } catch (error) {
-      console.error("Error adding encounter:", error);
+      console.error("Error updating campaign in Firebase:", error);
     }
   };
 
@@ -156,6 +132,6 @@ export function useCampaign() {
     addCampaign,
     fetchCampaigns,
     deleteCampaign,
-    addEncounter,
+    updateCampaignInFirebase,
   };
 }

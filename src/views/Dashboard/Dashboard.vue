@@ -64,12 +64,8 @@ const isModalOpen = ref(false);
 const playerProgression = ref([]);
 const isDeleting = ref(false);
 
-const handleAddCampaign = async ({
-  name,
-  description,
-  playerExperienceStart,
-}) => {
-  await addCampaign(name, description, playerExperienceStart);
+const handleAddCampaign = async ({ name, startXp }) => {
+  await addCampaign(name, startXp);
   isModalOpen.value = false;
   await loadCampaigns();
 };
@@ -92,52 +88,15 @@ const loadCampaigns = async () => {
     playerProgression.value = [
       { label: "Group Level", value: campaign.groupLevel, id: campaign.id },
       {
-        label: "Player Start Experience",
-        value: campaign.playerStartExperience,
-      },
-      { label: "XP Threshold Easy", value: campaign.xpThresholds.easy },
-      { label: "XP Threshold Medium", value: campaign.xpThresholds.medium },
-      { label: "XP Threshold Hard", value: campaign.xpThresholds.hard },
-      { label: "XP Threshold Deadly", value: campaign.xpThresholds.deadly },
-      {
         label: "Adventuring Day XP Limit",
         value: campaign.adventuringDayXpLimit,
       },
       {
-        label: "Adventuring Day XP Used",
-        value: campaign.adventuringDayXpUsed,
-      },
-      {
-        label: "Percent Adventuring Day XP Remaining",
-        value: `${campaign.percentAdventuringDayXpRemaining}%`,
-      },
-      {
-        label: "Short Rest Needed? - First One (68%)",
-        value: campaign.shortRestNeededFirst ? "Yes" : "No",
-      },
-      {
-        label: "Short Rest Needed? - Second One (35%)",
-        value: campaign.shortRestNeededSecond ? "Yes" : "No",
-      },
-      { label: "Short Rest Counter", value: campaign.shortRestCounter },
-      {
-        label: "Long Rest Needed?",
-        value: campaign.longRestNeeded ? "Yes" : "No",
-      },
-      {
-        label: "Time Spent Resting",
-        value: `${campaign.timeSpentResting} hours`,
-      },
-      {
-        label: "Death Penalty Multiplier - Increase",
+        label: "Death Penalty Multiplier",
         value: `${campaign.deathPenaltyMultiplier}%`,
       },
-      { label: "", value: "" },
-      {
-        label: "Adventuring Day XP Limit Difference",
-        value:
-          campaign.adventuringDayXpLimit - campaign.currentAdventuringDayXp,
-      },
+      { label: "Cumulative Gold Earned", value: campaign.cumulativeGoldEarned },
+      { label: "Current Group Experience", value: campaign.groupExperience },
     ];
   }
 };

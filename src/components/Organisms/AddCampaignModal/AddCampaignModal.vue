@@ -1,3 +1,4 @@
+<!-- AddCampaignModal.vue -->
 <template>
   <BaseModal :isOpen="isOpen" title="Add New Campaign" @close="closeModal">
     <form @submit.prevent="handleSubmit">
@@ -12,7 +13,7 @@
         placeholder="Enter description"
       />
       <InputField
-        v-model="playerExperienceStart"
+        v-model="startXp"
         label="Starting Experience"
         type="number"
         placeholder="0"
@@ -25,7 +26,7 @@
 </template>
 
 <script setup>
-import { ref, defineEmits, watch } from "vue";
+import { ref, defineEmits } from "vue";
 import InputField from "@/atoms/Input/Input.vue";
 import BaseModal from "@/atoms/Modal/Modal.vue";
 import Button from "@/atoms/Button/Button.vue";
@@ -36,7 +37,7 @@ const isOpen = ref(false);
 const isSubmitting = ref(false);
 const name = ref("");
 const description = ref("");
-const playerExperienceStart = ref(0);
+const startXp = ref(0); // Renamed to startXp
 
 const closeModal = () => {
   emit("close");
@@ -46,7 +47,7 @@ const closeModal = () => {
 const resetForm = () => {
   name.value = "";
   description.value = "";
-  playerExperienceStart.value = 0;
+  startXp.value = 0;
 };
 
 const handleSubmit = () => {
@@ -54,7 +55,7 @@ const handleSubmit = () => {
   emit("submit", {
     name: name.value,
     description: description.value,
-    playerExperienceStart: playerExperienceStart.value,
+    startXp: startXp.value, // Changed to startXp
   });
   isSubmitting.value = false;
   closeModal();
