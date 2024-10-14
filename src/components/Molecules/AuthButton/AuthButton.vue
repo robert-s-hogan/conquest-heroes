@@ -6,7 +6,6 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits } from "vue";
 import { useRouter } from "vue-router";
 import Button from "@/components/atoms/Button/Button.vue";
 import { useAuth } from "@/composables/useAuth";
