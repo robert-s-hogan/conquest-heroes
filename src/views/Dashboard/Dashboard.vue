@@ -1,3 +1,4 @@
+<!-- Dashboard.vue -->
 <template>
   <div class="min-h-screen bg-gray-100 flex flex-col">
     <div class="flex flex-1">
@@ -33,7 +34,7 @@
 
               <button
                 v-else
-                @click="openEditModal(currentCampaign)"
+                @click="isEditModalOpen = true"
                 class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
               >
                 Edit Campaign
@@ -68,23 +69,19 @@
               >
                 Add Encounter
               </button>
-
-              <Button
-                v-if="encounters.length > 0"
-                variant="secondary"
-                @click="handleDeleteEncounter"
-                :loading="isDeletingEncounter"
-              >
-                Delete Encounter
-              </Button>
             </div>
           </div>
 
-          <DataSection
-            v-if="formattedEncounters && formattedEncounters.length > 0"
-            title="Encounter Details"
-            :items="formattedEncounters"
-          />
+          <!-- List of Encounters -->
+          <div v-if="encounters && encounters.length > 0">
+            <EncounterItem
+              v-for="encounter in encounters"
+              :key="encounter.id"
+              :encounter="encounter"
+              @update-encounter="handleUpdateEncounter"
+              @delete-encounter="handleDeleteEncounter"
+            />
+          </div>
         </div>
 
         <!-- Modals -->
@@ -114,12 +111,15 @@
 
 <script setup>
 import { ref, onMounted, computed, watch } from "vue";
+
+import Button from "@/atoms/Button/Button.vue";
 import Heading from "@/atoms/Heading/Heading.vue";
 import DataSection from "@/organisms/DataSection/DataSection.vue";
+import EncounterItem from "@/molecules/EncounterItem/EncounterItem.vue";
 import AddCampaignModal from "@/organisms/AddCampaignModal/AddCampaignModal.vue";
 import AddEncounterModal from "@/organisms/AddEncounterModal/AddEncounterModal.vue";
 import EditCampaignModal from "@/organisms/EditCampaignModal/EditCampaignModal.vue";
-import Button from "@/components/Atoms/Button/Button.vue";
+
 import { useCampaignData } from "@/composables/Campaign/useCampaignData";
 import { useEncounter } from "@/composables/Encounter/useEncounter";
 
@@ -139,36 +139,28 @@ const {
 // Encounter-related references
 const isEncounterModalOpen = ref(false);
 const isDeletingEncounter = ref(false);
-let encounters = ref([]); // Change const to let
 
-// Watch for changes in currentCampaign to load encounters dynamically
-let addEncounter = async () => {};
-let deleteEncounter = async () => {};
+// Define campaignIdRef as a computed property
+const campaignIdRef = computed(() => currentCampaign.value?.id);
 
+// Use useEncounter with campaignIdRef
+const {
+  encounters,
+  fetchEncounters,
+  addEncounter,
+  deleteEncounter,
+  updateEncounter,
+} = useEncounter(campaignIdRef);
+
+// Fetch encounters when campaignId changes
 watch(
-  () => currentCampaign.value?.id,
-  (campaignId) => {
-    if (campaignId) {
-      // Initialize useEncounter only when currentCampaign has a valid ID
-      const {
-        encounters: encounterList,
-        fetchEncounters,
-        addEncounter: addEncounterFunc,
-        deleteEncounter: deleteEncounterFunc,
-      } = useEncounter(ref(campaignId));
-
-      // Assign encounter-related data and functions to the local references
-      encounters = encounterList;
-      addEncounter = addEncounterFunc;
-      deleteEncounter = deleteEncounterFunc;
-
-      // Fetch encounters for the current campaign
+  campaignIdRef,
+  (newCampaignId) => {
+    if (newCampaignId) {
       fetchEncounters();
     } else {
-      // Reset local references if no campaign ID is set
+      // Reset encounters
       encounters.value = [];
-      addEncounter = async () => {};
-      deleteEncounter = async () => {};
     }
   },
   { immediate: true }
@@ -180,27 +172,23 @@ const handleAddEncounter = async (encounterData) => {
       ...encounterData,
       campaignId: currentCampaign.value.id,
     });
+    // No need to refetch encounters; they are reactive
+  }
+};
+
+const handleUpdateEncounter = async (updatedEncounter) => {
+  if (currentCampaign.value?.id) {
+    await updateEncounter(updatedEncounter);
+    // No need to refetch encounters; they are reactive
   }
 };
 
 const handleDeleteEncounter = async (encounterId) => {
-  if (encounterId && currentCampaign.value?.id) {
+  if (currentCampaign.value?.id) {
     await deleteEncounter(encounterId);
+    // No need to refetch encounters; they are reactive
   }
 };
-
-const formattedEncounters = computed(() => {
-  if (!Array.isArray(encounters.value) || encounters.value.length === 0) {
-    return [];
-  }
-
-  return encounters.value.map((encounter, index) => ({
-    label: `Encounter ${index + 1}: ${encounter.encounterDifficulty || "N/A"}`,
-    value: `XP: ${encounter.encounterAdjustedExperience || "No data"}, Gold: ${
-      encounter.goldEarned || "No data"
-    }`,
-  }));
-});
 
 // Load campaigns on mount
 onMounted(loadCampaigns);

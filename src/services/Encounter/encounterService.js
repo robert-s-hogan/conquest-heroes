@@ -43,15 +43,21 @@ export async function addEncounter(campaignId, encounter) {
   return { id: docRef.id, ...data };
 }
 
-export async function updateEncounter(campaignId, encounter) {
-  if (!campaignId) {
-    console.error("No campaignId provided to updateEncounter.");
-    return;
+export const updateEncounter = async (campaignId, encounterId, updatedData) => {
+  try {
+    const encounterDocRef = doc(
+      db,
+      "campaigns",
+      campaignId,
+      "encounters",
+      encounterId
+    );
+    await updateDoc(encounterDocRef, updatedData);
+  } catch (error) {
+    console.error("Error updating encounter:", error);
+    throw error;
   }
-  const docRef = doc(db, "campaigns", campaignId, "encounters", encounter.id);
-  const { id, ...data } = encounter;
-  await updateDoc(docRef, data);
-}
+};
 
 export async function deleteEncounter(campaignId, encounterId) {
   if (!campaignId) {

@@ -66,6 +66,8 @@ const buttonClasses = computed(() => {
         return "bg-gray-500 text-white hover:bg-gray-700";
       case "primaryOutlined":
         return "border text-blue-500 hover:bg-blue-100";
+      case "danger":
+        return "bg-red-500 text-white hover:bg-red-700";
       default:
         return "";
     }

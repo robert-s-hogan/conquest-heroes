@@ -4,6 +4,7 @@ import {
   fetchEncounters as fetchEncountersFromService,
   addEncounter as addEncounterToService,
   deleteEncounter as deleteEncounterFromService,
+  updateEncounter as updateEncounterInService,
 } from "@/services/Encounter/encounterService";
 
 export function useEncounter(campaignIdRef) {
@@ -12,7 +13,7 @@ export function useEncounter(campaignIdRef) {
   const fetchEncounters = async () => {
     if (!campaignIdRef?.value) {
       console.error("campaignId is not defined.");
-      encounters.value = []; // Ensure encounters is always an array
+      encounters.value = [];
       return;
     }
     try {
@@ -21,7 +22,7 @@ export function useEncounter(campaignIdRef) {
       console.log("Fetched encounters:", encounters.value);
     } catch (error) {
       console.error("Error fetching encounters:", error);
-      encounters.value = []; // Reset encounters in case of error
+      encounters.value = [];
     }
   };
 
@@ -67,6 +68,30 @@ export function useEncounter(campaignIdRef) {
     }
   };
 
+  const updateEncounter = async (updatedEncounter) => {
+    if (!campaignIdRef?.value || !updatedEncounter.id) {
+      console.error("Invalid campaignId or encounterId.");
+      return;
+    }
+    try {
+      await updateEncounterInService(
+        campaignIdRef.value,
+        updatedEncounter.id,
+        updatedEncounter
+      );
+      // Update the local encounters array
+      const index = encounters.value.findIndex(
+        (encounter) => encounter.id === updatedEncounter.id
+      );
+      if (index !== -1) {
+        encounters.value[index] = { ...updatedEncounter };
+      }
+      console.log("Encounter updated:", updatedEncounter.id);
+    } catch (error) {
+      console.error("Error updating encounter:", error);
+    }
+  };
+
   // Watch the campaignIdRef and only fetch encounters if there's a valid ID
   watch(
     campaignIdRef,
@@ -85,5 +110,6 @@ export function useEncounter(campaignIdRef) {
     fetchEncounters,
     addEncounter,
     deleteEncounter,
+    updateEncounter,
   };
 }
