@@ -113,7 +113,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watchEffect } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import Heading from "@/atoms/Heading/Heading.vue";
 import DataSection from "@/organisms/DataSection/DataSection.vue";
 import AddCampaignModal from "@/organisms/AddCampaignModal/AddCampaignModal.vue";
@@ -123,6 +123,7 @@ import Button from "@/components/Atoms/Button/Button.vue";
 import { useCampaignData } from "@/composables/Campaign/useCampaignData";
 import { useEncounter } from "@/composables/Encounter/useEncounter";
 
+// Campaign composable setup
 const {
   isModalOpen,
   isEditModalOpen,
@@ -133,53 +134,58 @@ const {
   handleAddCampaign,
   handleEditCampaign,
   handleDeleteCampaign,
-} = useCampaignData(); // Use your refactored campaign composable
+} = useCampaignData();
 
+// Encounter-related references
 const isEncounterModalOpen = ref(false);
 const isDeletingEncounter = ref(false);
-const encounters = ref([]);
-
-const {
-  encounters: encounterList,
-  fetchEncounters,
-  addEncounter,
-  deleteEncounter,
-} = useEncounter(currentCampaign.value?.id);
+let encounters = ref([]); // Change const to let
 
 // Watch for changes in currentCampaign to load encounters dynamically
-watchEffect(() => {
-  if (currentCampaign.value?.id) {
-    fetchEncounters();
-  }
-});
+let addEncounter = async () => {};
+let deleteEncounter = async () => {};
 
-const openEditModal = (campaign) => {
-  currentCampaign.value = campaign;
-  isEditModalOpen.value = true;
-};
+watch(
+  () => currentCampaign.value?.id,
+  (campaignId) => {
+    if (campaignId) {
+      // Initialize useEncounter only when currentCampaign has a valid ID
+      const {
+        encounters: encounterList,
+        fetchEncounters,
+        addEncounter: addEncounterFunc,
+        deleteEncounter: deleteEncounterFunc,
+      } = useEncounter(ref(campaignId));
 
-const loadEncounters = async () => {
-  await fetchEncounters();
-};
+      // Assign encounter-related data and functions to the local references
+      encounters = encounterList;
+      addEncounter = addEncounterFunc;
+      deleteEncounter = deleteEncounterFunc;
+
+      // Fetch encounters for the current campaign
+      fetchEncounters();
+    } else {
+      // Reset local references if no campaign ID is set
+      encounters.value = [];
+      addEncounter = async () => {};
+      deleteEncounter = async () => {};
+    }
+  },
+  { immediate: true }
+);
 
 const handleAddEncounter = async (encounterData) => {
-  if (currentCampaign.value) {
+  if (currentCampaign.value?.id) {
     await addEncounter({
       ...encounterData,
       campaignId: currentCampaign.value.id,
     });
-    isEncounterModalOpen.value = false;
-    await fetchEncounters(); // Refresh encounters list after adding
   }
 };
 
-const handleDeleteEncounter = async () => {
-  if (encounters.value.length > 0) {
-    const encounterId = encounters.value[0]?.id; // Replace with actual ID or selection logic
-    isDeletingEncounter.value = true;
+const handleDeleteEncounter = async (encounterId) => {
+  if (encounterId && currentCampaign.value?.id) {
     await deleteEncounter(encounterId);
-    isDeletingEncounter.value = false;
-    await loadEncounters(); // Refresh encounters list
   }
 };
 
@@ -196,9 +202,6 @@ const formattedEncounters = computed(() => {
   }));
 });
 
-watchEffect(() => {
-  encounters.value = encounterList.value; // keep encounters array updated
-});
-
-onMounted(loadCampaigns); // Only need to call this to load campaigns
+// Load campaigns on mount
+onMounted(loadCampaigns);
 </script>

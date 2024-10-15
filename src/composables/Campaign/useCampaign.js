@@ -27,13 +27,10 @@ export function useCampaign() {
       cumulativeGoldEarned: 0, // Initial gold
       groupExperience: Number(startXp),
       levelOfPlayerCharacters: groupLevel,
-      currentAdventuringDayXp: adventuringDayXpLimit,
-      shortRestCounter: 2, // Initial value
-      xpThresholds, // Ensure xpThresholds are included here
     };
 
     const derivedFields = calculateDerivedFields(newCampaign);
-    const campaignData = { ...newCampaign, ...derivedFields };
+    const campaignData = { ...newCampaign };
 
     try {
       const campaignRef = await addDoc(campaignCollectionRef, campaignData);
