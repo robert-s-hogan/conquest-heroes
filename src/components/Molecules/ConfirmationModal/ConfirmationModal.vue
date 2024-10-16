@@ -15,9 +15,9 @@
 </template>
 
 <script setup>
-import Button from "@/atoms/Button/Button.vue";
-import Heading from "@/atoms/Heading/Heading.vue";
-import Paragraph from "@/atoms/Paragraph/Paragraph.vue";
+import Button from "@/components/Atoms/Button/Button.vue";
+import Heading from "@/components/Atoms/Heading/Heading.vue";
+import Paragraph from "@/components/Atoms/Paragraph/Paragraph.vue";
 
 const props = defineProps({
   isOpen: { type: Boolean, required: true },

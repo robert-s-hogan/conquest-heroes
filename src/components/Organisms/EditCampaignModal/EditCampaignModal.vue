@@ -34,9 +34,9 @@
 
 <script setup>
 import { ref, watch, defineEmits } from "vue";
-import InputField from "@/atoms/Input/Input.vue";
-import BaseModal from "@/atoms/Modal/Modal.vue";
-import Button from "@/atoms/Button/Button.vue";
+import InputField from "@/components/Atoms/Input/Input.vue";
+import BaseModal from "@/components/Atoms/Modal/Modal.vue";
+import Button from "@/components/Atoms/Button/Button.vue";
 
 const emit = defineEmits(["close", "update"]);
 const props = defineProps({

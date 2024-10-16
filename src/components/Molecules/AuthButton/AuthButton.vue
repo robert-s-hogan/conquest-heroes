@@ -7,7 +7,7 @@
 
 <script setup>
 import { useRouter } from "vue-router";
-import Button from "@/components/atoms/Button/Button.vue";
+import Button from "@/components/Atoms/Button/Button.vue";
 import { useAuth } from "@/composables/useAuth";
 
 const props = defineProps({
