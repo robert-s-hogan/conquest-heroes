@@ -43,7 +43,7 @@
               <Button
                 v-if="currentCampaign"
                 variant="secondary"
-                @click="handleDeleteCampaign"
+                @click="isDeleteConfirmModalOpen = true"
                 :loading="isDeleting"
               >
                 Delete Campaign
@@ -61,7 +61,7 @@
         <!-- Encounter Section -->
         <div v-if="currentCampaign" class="mb-6">
           <div class="flex items-center justify-between mb-4">
-            <Heading title="Encounter Management" level="2" />
+            <Heading title="Encounters" level="2" />
             <div>
               <button
                 @click="isEncounterModalOpen = true"
@@ -73,7 +73,10 @@
           </div>
 
           <!-- List of Encounters -->
-          <div v-if="encounters && encounters.length > 0">
+          <div
+            v-if="encounters && encounters.length > 0"
+            class="border border-2 border-black"
+          >
             <EncounterItem
               v-for="encounter in encounters"
               :key="encounter.id"
@@ -85,6 +88,17 @@
         </div>
 
         <!-- Modals -->
+
+        <!-- Confirmation Modal -->
+        <ConfirmationModal
+          v-if="currentCampaign"
+          :isOpen="isDeleteConfirmModalOpen"
+          title="Delete Campaign"
+          message="Are you sure you want to delete this campaign? This action cannot be undone."
+          @confirm="confirmDeleteCampaign"
+          @cancel="isDeleteConfirmModalOpen = false"
+        />
+
         <AddCampaignModal
           :isOpen="isModalOpen"
           @close="isModalOpen = false"
@@ -118,6 +132,7 @@ import DataSection from "@/organisms/DataSection/DataSection.vue";
 import EncounterItem from "@/molecules/EncounterItem/EncounterItem.vue";
 import AddCampaignModal from "@/organisms/AddCampaignModal/AddCampaignModal.vue";
 import AddEncounterModal from "@/organisms/AddEncounterModal/AddEncounterModal.vue";
+import ConfirmationModal from "@/molecules/ConfirmationModal/ConfirmationModal.vue";
 import EditCampaignModal from "@/organisms/EditCampaignModal/EditCampaignModal.vue";
 
 import { useCampaignData } from "@/composables/Campaign/useCampaignData";
@@ -188,6 +203,13 @@ const handleDeleteEncounter = async (encounterId) => {
     await deleteEncounter(encounterId);
     // No need to refetch encounters; they are reactive
   }
+};
+
+const isDeleteConfirmModalOpen = ref(false);
+
+const confirmDeleteCampaign = async () => {
+  isDeleteConfirmModalOpen.value = false;
+  await handleDeleteCampaign();
 };
 
 // Load campaigns on mount

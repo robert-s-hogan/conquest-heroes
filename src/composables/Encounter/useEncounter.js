@@ -32,8 +32,16 @@ export function useEncounter(campaignIdRef) {
       return;
     }
     try {
+      // Determine the next ID
+      const nextId =
+        encounters.value.length > 0
+          ? Math.max(...encounters.value.map((encounter) => encounter.id)) + 1
+          : 1;
+
+      // Create new encounter with the sequential ID
       const newEncounter = {
         ...encounterData,
+        id: nextId,
         date: new Date().toISOString(),
       };
 

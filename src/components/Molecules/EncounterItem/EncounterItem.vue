@@ -1,15 +1,17 @@
 <!-- EncounterItem.vue -->
 <template>
   <div
-    class="p-4 bg-white rounded shadow mb-2 cursor-pointer hover:bg-gray-100"
+    class="px-1 rounded shadow cursor-pointer border-1 bg-gray-50 border-black"
     @click="openEditModal"
   >
-    <div class="flex justify-between items-center">
-      <div>
+    <div class="flex items-center border-y border-black">
+      <div class="flex-1 text-left p-1">
         <h3 class="text-lg font-semibold">{{ encounterTitle }}</h3>
         <p class="text-sm text-gray-600">{{ encounterDescription }}</p>
       </div>
-      <div>
+      <span class="w-px h-14 bg-black mx-4"></span>
+
+      <div class="flex-1 text-right p-1">
         <span class="text-gray-500">{{ formattedDate }}</span>
       </div>
     </div>
