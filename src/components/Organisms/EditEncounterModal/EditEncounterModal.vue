@@ -58,7 +58,6 @@
             <div class="col-span-1" />
             <div>
               <div class="border-2 border-black">
-                <Heading level="4" title="Top" />
                 <div
                   v-for="(item, index) in mapPositions.top"
                   :key="`top-${index}`"
@@ -78,7 +77,6 @@
             <!-- Left, Center, Right Sections -->
             <div class="-mt-12">
               <div class="border-2 border-black">
-                <Heading level="4" title="Left" />
                 <div
                   v-for="(item, index) in mapPositions.left"
                   :key="`left-${index}`"
@@ -96,7 +94,6 @@
 
             <div>
               <div class="border-2 border-black">
-                <Heading level="4" title="Center" />
                 <div
                   v-for="(item, index) in mapPositions.center"
                   :key="`center-${index}`"
@@ -110,7 +107,7 @@
                   <p v-else>{{ item || "-" }}</p>
                 </div>
                 <p
-                  class="border-2 border-black bg-gray-200 font-bold text-red-600 uppercase"
+                  class="border-2 border-black bg-gray-200 font-bold text-green-600 uppercase"
                 >
                   Player Start
                 </p>
@@ -119,7 +116,6 @@
 
             <div class="-mt-12">
               <div class="border-2 border-black">
-                <Heading level="4" title="Right" />
                 <div
                   v-for="(item, index) in mapPositions.right"
                   :key="`right-${index}`"
