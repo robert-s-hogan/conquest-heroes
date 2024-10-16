@@ -21,33 +21,6 @@
         placeholder="Enter adjusted experience"
       />
 
-      <!-- Select Fields -->
-      <SelectField
-        v-model="encounterDifficultyOption"
-        label="Encounter Difficulty Option"
-        :options="difficultyOptionsRef"
-      />
-      <SelectField
-        v-model="mapTerrainType"
-        label="Map Terrain Type"
-        :options="terrainOptionsRef"
-      />
-      <SelectField
-        v-model="timeOfDay"
-        label="Time of Day"
-        :options="timeOfDayOptionsRef"
-      />
-      <SelectField
-        v-model="weather"
-        label="Weather"
-        :options="weatherOptionsRef"
-      />
-      <SelectField
-        v-model="objectivesOfEncounter"
-        label="Objectives"
-        :options="objectivesOptionsRef"
-      />
-
       <Button :loading="isSubmitting" variant="primary" class="w-full mt-4">
         Add Encounter
       </Button>
