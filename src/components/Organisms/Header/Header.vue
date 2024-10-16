@@ -1,7 +1,12 @@
 <template>
-  <header class="bg-gray-800 p-4 flex justify-between items-center text-white">
+  <header class="bg-white p-4 flex justify-between items-center text-white">
     <div class="flex items-center space-x-4">
-      <Link to="/" class="text-lg font-bold">Home</Link>
+      <Link to="/" class="text-lg font-bold">
+        <img
+          src="@/assets/conquest-logo.jpg"
+          class="h-auto max-w-full w-12 sm:w-16 hover:drop-shadow-lg transition duration-300 object-contain"
+          alt="Vue logo"
+      /></Link>
       <Navigation :isAuthenticated="isAuthenticated" />
     </div>
     <!-- Show Login Button if not authenticated -->
