@@ -153,11 +153,11 @@
 
 <script setup>
 import { ref, watch } from "vue";
-import Modal from "@/atoms/Modal/Modal.vue";
-import InputField from "@/atoms/Input/Input.vue";
-import SelectField from "@/atoms/SelectField/SelectField.vue";
-import Button from "@/atoms/Button/Button.vue";
-import Heading from "@/atoms/Heading/Heading.vue";
+import Modal from "@/components/atoms/Modal/Modal.vue";
+import InputField from "@/components/atoms/Input/Input.vue";
+import SelectField from "@/components/atoms/SelectField/SelectField.vue";
+import Button from "@/components/atoms/Button/Button.vue";
+import Heading from "@/components/atoms/Heading/Heading.vue";
 import {
   difficultyOptions,
   terrainOptions,

@@ -30,10 +30,10 @@
 
 <script setup>
 import { ref, defineEmits } from "vue";
-import InputField from "@/atoms/Input/Input.vue";
-import SelectField from "@/atoms/SelectField/SelectField.vue";
-import BaseModal from "@/atoms/Modal/Modal.vue";
-import Button from "@/atoms/Button/Button.vue";
+import InputField from "@/components/atoms/Input/Input.vue";
+import SelectField from "@/components/atoms/SelectField/SelectField.vue";
+import BaseModal from "@/components/atoms/Modal/Modal.vue";
+import Button from "@/components/atoms/Button/Button.vue";
 import {
   getRandomEncounterDifficultyOption,
   getRandomMapTerrainType,
