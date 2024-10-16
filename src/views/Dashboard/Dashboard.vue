@@ -4,14 +4,14 @@
     <div class="flex flex-1">
       <aside class="w-64 bg-white p-4 shadow-md">
         <nav>
-          <ul>
+          <!-- <ul>
             <li class="mb-4">
               <a href="#" class="text-blue-500 hover:underline">Campaigns</a>
             </li>
             <li class="mb-4">
               <a href="#" class="text-blue-500 hover:underline">Encounters</a>
             </li>
-          </ul>
+          </ul> -->
         </nav>
       </aside>
       <main class="flex-1 p-4">
