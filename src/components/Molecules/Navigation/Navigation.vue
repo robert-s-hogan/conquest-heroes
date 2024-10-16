@@ -1,6 +1,8 @@
 <template>
   <nav class="space-x-4">
-    <Link v-if="isAuthenticated" to="/dashboard">Dashboard</Link>
+    <Link v-if="isAuthenticated" to="/dashboard" class="text-black"
+      >Dashboard</Link
+    >
     <!-- Additional links can be added here -->
   </nav>
 </template>
