@@ -7,7 +7,6 @@
 
 <script setup>
 import Link from "@/atoms/Link/Link.vue";
-import { defineProps } from "vue";
 
 const props = defineProps({
   isAuthenticated: {

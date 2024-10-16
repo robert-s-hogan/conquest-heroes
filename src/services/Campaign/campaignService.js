@@ -1,4 +1,13 @@
 // services/campaignService.js
+import {
+  collection,
+  getDocs,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+} from "firebase/firestore"; // Import all needed functions
+
 export async function fetchCampaigns(
   db,
   getDocsFunc = getDocs,
@@ -29,7 +38,7 @@ export async function updateCampaign(
   campaign,
   updateDocFunc = updateDoc,
   docFunc = doc,
-  getDocFunc = getDoc
+  getDocFunc = getDocs // Use correct function here if intended
 ) {
   const docRef = docFunc(db, "campaigns", campaign.id);
   const { id, ...data } = campaign;
