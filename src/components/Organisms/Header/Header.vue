@@ -24,10 +24,10 @@
 
 <script setup>
 import { ref } from "vue";
-import Button from "@/components/atoms/Button/Button.vue";
-import Navigation from "@/components/molecules/Navigation/Navigation.vue";
-import AuthButton from "@/components/molecules/AuthButton/AuthButton.vue";
-import Link from "@/components/atoms/Link/Link.vue";
+import Button from "@/components/Atoms/Button/Button.vue";
+import Navigation from "@/components/Molecules/Navigation/Navigation.vue";
+import AuthButton from "@/components/Molecules/AuthButton/AuthButton.vue";
+import Link from "@/components/Atoms/Link/Link.vue";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "@/firebase/firebaseConfig";
 import { useRouter } from "vue-router";

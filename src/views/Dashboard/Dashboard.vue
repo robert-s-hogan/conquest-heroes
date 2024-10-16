@@ -126,14 +126,14 @@
 <script setup>
 import { ref, onMounted, computed, watch } from "vue";
 
-import Button from "@/components/atoms/Button/Button.vue";
-import Heading from "@/components/atoms/Heading/Heading.vue";
-import DataSection from "@/components/organisms/DataSection/DataSection.vue";
-import EncounterItem from "@/components/molecules/EncounterItem/EncounterItem.vue";
-import AddCampaignModal from "@/components/organisms/AddCampaignModal/AddCampaignModal.vue";
-import AddEncounterModal from "@/components/organisms/AddEncounterModal/AddEncounterModal.vue";
-import ConfirmationModal from "@/components/molecules/ConfirmationModal/ConfirmationModal.vue";
-import EditCampaignModal from "@/components/organisms/EditCampaignModal/EditCampaignModal.vue";
+import Button from "@/components/Atoms/Button/Button.vue";
+import Heading from "@/components/Atoms/Heading/Heading.vue";
+import DataSection from "@/components/Organisms/DataSection/DataSection.vue";
+import EncounterItem from "@/components/Molecules/EncounterItem/EncounterItem.vue";
+import AddCampaignModal from "@/components/Organisms/AddCampaignModal/AddCampaignModal.vue";
+import AddEncounterModal from "@/components/Organisms/AddEncounterModal/AddEncounterModal.vue";
+import ConfirmationModal from "@/components/Molecules/ConfirmationModal/ConfirmationModal.vue";
+import EditCampaignModal from "@/components/Organisms/EditCampaignModal/EditCampaignModal.vue";
 
 import { useCampaignData } from "@/composables/Campaign/useCampaignData";
 import { useEncounter } from "@/composables/Encounter/useEncounter";

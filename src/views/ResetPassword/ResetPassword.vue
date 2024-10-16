@@ -48,7 +48,7 @@
 import { ref } from "vue";
 import { auth } from "@/firebase/firebaseConfig";
 import { sendPasswordResetEmail } from "firebase/auth";
-import Button from "@/components/atoms/Button/Button.vue";
+import Button from "@/components/Atoms/Button/Button.vue";
 
 const email = ref("");
 const message = ref("");

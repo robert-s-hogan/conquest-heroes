@@ -71,7 +71,7 @@ import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { auth } from "@/firebase/firebaseConfig";
 import { register, loginWithGoogle } from "@/services/Auth/authServices";
-import Button from "@/components/atoms/Button/Button.vue";
+import Button from "@/components/Atoms/Button/Button.vue";
 
 const router = useRouter();
 const email = ref("");

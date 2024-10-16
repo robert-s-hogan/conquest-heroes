@@ -8,7 +8,7 @@
 </template>
 
 <script setup>
-import Link from "@/components/atoms/Link/Link.vue";
+import Link from "@/components/Atoms/Link/Link.vue";
 
 const props = defineProps({
   isAuthenticated: {

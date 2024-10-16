@@ -14,8 +14,8 @@
 </template>
 
 <script setup>
-import LabelText from "@/components/atoms/LabelText/LabelText.vue";
-import DataRow from "@/components/molecules/DataRow/DataRow.vue";
+import LabelText from "@/components/Atoms/LabelText/LabelText.vue";
+import DataRow from "@/components/Molecules/DataRow/DataRow.vue";
 
 const props = defineProps({
   title: String,

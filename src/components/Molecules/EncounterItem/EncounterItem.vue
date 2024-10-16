@@ -30,7 +30,7 @@
 
 <script setup>
 import { ref, computed } from "vue";
-import EditEncounterModal from "@/components/organisms/EditEncounterModal/EditEncounterModal.vue";
+import EditEncounterModal from "@/components/Organisms/EditEncounterModal/EditEncounterModal.vue";
 
 const props = defineProps({
   encounter: {
