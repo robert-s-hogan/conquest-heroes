@@ -6,6 +6,26 @@ import {
   deleteEncounter as deleteEncounterFromService,
   updateEncounter as updateEncounterInService,
 } from "@/services/Encounter/encounterService";
+import {
+  generateEncounterNumber,
+  generateDate,
+  getPlayers,
+  getNumberOfPlayers,
+  getXpThresholdsByCharacterLevel,
+  getRandomEncounterDifficultyOption,
+  getRandomEncounterOppositionType,
+  calculateEncounterExperience,
+  calculatePercentOfAdventuringDayXpRemaining,
+  getRandomBoolean,
+  getRandomTimeBetweenEncounters,
+  getRandomMapTerrainType,
+  getRandomStartingQuadrant,
+  getRandomObjectivesOfEncounter,
+  getRandomTimeOfDay,
+  getRandomWeather,
+  getRandomGoldEarned,
+  getRandomDoesCaravanAppear,
+} from "@/utils/encounterUtils";
 
 export function useEncounter(campaignIdRef) {
   const encounters = ref([]);
@@ -38,11 +58,69 @@ export function useEncounter(campaignIdRef) {
           ? Math.max(...encounters.value.map((encounter) => encounter.id)) + 1
           : 1;
 
+      const encounterNumber = generateEncounterNumber(encounters.value);
+      const date = generateDate();
+      const players = getPlayers(encounterData.numberOfPlayers);
+      const numberOfPlayers = encounterData.numberOfPlayers;
+      const xpThresholdsByCharacterLevel = getXpThresholdsByCharacterLevel(
+        encounterData.levelOfPlayerCharacters || 4 // Default level
+      );
+      const encounterDifficultyOption = encounterData.encounterDifficultyOption;
+      const encounterOppositionType = getRandomEncounterOppositionType();
+      const encounterExperience = encounterData.encounterExperience;
+      const percentOfAdventuringDayXpRemaining =
+        calculatePercentOfAdventuringDayXpRemaining(
+          encounterData.adventuringDayXpLimit || 6800,
+          encounterData.groupExperience || 0
+        );
+      const shortRestNeededFirstOne = getRandomBoolean();
+      const shortRestNeededSecondOne = getRandomBoolean();
+      const shortRestCounter =
+        shortRestNeededFirstOne + shortRestNeededSecondOne;
+      const longRestNeeded = getRandomBoolean();
+      const timeSpentResting = "-";
+      const timeBetweenEncounters = getRandomTimeBetweenEncounters();
+      const mapTerrainType = getRandomMapTerrainType();
+      const startingQuadrantOfOppositionOnMap = getRandomStartingQuadrant();
+      const objectivesOfEncounter = getRandomObjectivesOfEncounter();
+      const timeOfDay = getRandomTimeOfDay();
+      const weather = getRandomWeather();
+      const goldEarnedFromEncounter = getRandomGoldEarned();
+      const doesCaravanAppear = getRandomDoesCaravanAppear();
+
       // Create new encounter with the sequential ID
       const newEncounter = {
         ...encounterData,
         id: nextId,
-        date: new Date().toISOString(),
+        date,
+        encounterNumber,
+        players,
+        numberOfPlayers,
+        deathPenaltyMultiplierChange: 0,
+        adventuringDayXpLimitDifference: 0,
+        xpThresholdsByCharacterLevel,
+        encounterDifficultyOption,
+        encounterOppositionType,
+        encounterAdjustedExperience:
+          encounterData.encounterAdjustedExperience || 440,
+        encounterExperience,
+        groupExperienceEarnedFromEncounter:
+          encounterData.groupExperienceEarnedFromEncounter || 110,
+        percentOfAdventuringDayXpRemaining,
+        shortRestNeededFirstOne,
+        shortRestNeededSecondOne,
+        shortRestCounter,
+        longRestNeeded,
+        timeSpentResting,
+        timeBetweenEncounters,
+        mapTerrainType,
+        startingQuadrantOfOppositionOnMap,
+        objectivesOfEncounter,
+        timeOfDay,
+        weather,
+        goldEarnedFromEncounter:
+          encounterData.goldEarnedFromEncounter || goldEarnedFromEncounter,
+        doesCaravanAppear,
       };
 
       const encounterWithId = await addEncounterToService(
