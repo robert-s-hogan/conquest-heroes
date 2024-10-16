@@ -201,7 +201,6 @@ const handleUpdateEncounter = async (updatedEncounter) => {
 const handleDeleteEncounter = async (encounterId) => {
   if (currentCampaign.value?.id) {
     await deleteEncounter(encounterId);
-    // No need to refetch encounters; they are reactive
   }
 };
 
