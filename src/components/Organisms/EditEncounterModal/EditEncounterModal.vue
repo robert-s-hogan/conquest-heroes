@@ -24,43 +24,45 @@
             label="Encounter Adjusted Experience"
             type="number"
           />
-          <div class="grid grid-cols-2 lg:grid-cols-4">
-            <!-- Select Fields -->
-            <SelectField
-              v-model="encounterData.encounterDifficultyOption"
-              label="Encounter Difficulty Option"
-              :options="difficultyOptions"
-            />
-            <SelectField
-              v-model="encounterData.mapTerrainType"
-              label="Map Terrain Type"
-              :options="terrainOptions"
-            />
-            <SelectField
-              v-model="encounterData.timeOfDay"
-              label="Time of Day"
-              :options="timeOfDayOptions"
-            />
-            <SelectField
-              v-model="encounterData.weather"
-              label="Weather"
-              :options="weatherOptions"
-            />
-            <SelectField
-              v-model="encounterData.objectivesOfEncounter"
-              label="Objectives"
-              :options="objectiveOptions"
-            />
-          </div>
+
+          <!-- Select Fields -->
+          <SelectField
+            v-model="encounterData.encounterDifficultyOption"
+            label="Encounter Difficulty Option"
+            :options="difficultyOptionsRef"
+          />
+          <SelectField
+            v-model="encounterData.mapTerrainType"
+            label="Map Terrain Type"
+            :options="terrainOptionsRef"
+          />
+          <SelectField
+            v-model="encounterData.timeOfDay"
+            label="Time of Day"
+            :options="timeOfDayOptionsRef"
+          />
+          <SelectField
+            v-model="encounterData.weather"
+            label="Weather"
+            :options="weatherOptionsRef"
+          />
+          <SelectField
+            v-model="encounterData.objectivesOfEncounter"
+            label="Objectives"
+            :options="objectivesOptionsRef"
+          />
         </div>
         <div>
           <div class="mt-8 grid grid-cols-3 text-center p-4 rounded-lg">
             <!-- Top Section -->
             <div class="col-span-1" />
-            <div class="">
+            <div>
               <div class="border-2 border-black">
                 <Heading level="4" title="Top" />
-                <div v-for="item in mapPositions.top" :key="item">
+                <div
+                  v-for="(item, index) in mapPositions.top"
+                  :key="`top-${index}`"
+                >
                   <p
                     v-if="item === 'OPPOSITION START'"
                     class="border-t-2 border-black bg-gray-200 font-bold text-red-600"
@@ -77,7 +79,10 @@
             <div class="-mt-12">
               <div class="border-2 border-black">
                 <Heading level="4" title="Left" />
-                <div v-for="item in mapPositions.left" :key="item">
+                <div
+                  v-for="(item, index) in mapPositions.left"
+                  :key="`left-${index}`"
+                >
                   <p
                     v-if="item === 'OPPOSITION START'"
                     class="border-t-2 border-black bg-gray-200 font-bold text-red-600"
@@ -92,7 +97,10 @@
             <div>
               <div class="border-2 border-black">
                 <Heading level="4" title="Center" />
-                <div v-for="item in mapPositions.center" :key="item">
+                <div
+                  v-for="(item, index) in mapPositions.center"
+                  :key="`center-${index}`"
+                >
                   <p
                     v-if="item === 'PLAYER START'"
                     class="border-t-2 border-black bg-gray-200 font-bold text-red-600"
@@ -112,7 +120,10 @@
             <div class="-mt-12">
               <div class="border-2 border-black">
                 <Heading level="4" title="Right" />
-                <div v-for="item in mapPositions.right" :key="item">
+                <div
+                  v-for="(item, index) in mapPositions.right"
+                  :key="`right-${index}`"
+                >
                   <p
                     v-if="item === 'OPPOSITION START'"
                     class="border-t-2 border-black bg-gray-200 font-bold text-red-600"
@@ -145,12 +156,19 @@
 </template>
 
 <script setup>
-import { ref, defineProps, defineEmits, watch } from "vue";
+import { ref, watch } from "vue";
 import Modal from "@/atoms/Modal/Modal.vue";
 import InputField from "@/atoms/Input/Input.vue";
 import SelectField from "@/atoms/SelectField/SelectField.vue";
 import Button from "@/atoms/Button/Button.vue";
 import Heading from "@/atoms/Heading/Heading.vue";
+import {
+  difficultyOptions,
+  terrainOptions,
+  timeOfDayOptions,
+  weatherOptions,
+  objectivesOptions,
+} from "@/utils/encounterUtils";
 
 const props = defineProps({
   isOpen: {
@@ -168,6 +186,23 @@ const emit = defineEmits(["close", "update", "delete"]);
 const encounterData = ref({ ...props.encounter });
 const isSubmitting = ref(false);
 const isDeleting = ref(false);
+
+// Convert options arrays into the format expected by SelectField
+const difficultyOptionsRef = ref(
+  difficultyOptions.map((value) => ({ value, label: value }))
+);
+const terrainOptionsRef = ref(
+  terrainOptions.map((value) => ({ value, label: value }))
+);
+const timeOfDayOptionsRef = ref(
+  timeOfDayOptions.map((value) => ({ value, label: value }))
+);
+const weatherOptionsRef = ref(
+  weatherOptions.map((value) => ({ value, label: value }))
+);
+const objectivesOptionsRef = ref(
+  objectivesOptions.map((value) => ({ value, label: value }))
+);
 
 // Define map positions
 const mapPositions = ref({
@@ -213,22 +248,23 @@ const randomizeMapItems = () => {
     "OPPOSITION START",
   ];
 
+  // Index for items
+  let index = 3;
+
   // Fill remaining positions with shuffled items
-  if (randomOppositionPosition !== "top") {
-    mapPositions.value.top = shuffledItems.slice(3, 7);
-  }
-  if (randomOppositionPosition !== "left") {
-    mapPositions.value.left = shuffledItems.slice(7, 11);
-  }
-  if (randomOppositionPosition !== "right") {
-    mapPositions.value.right = shuffledItems.slice(11, 15);
-  }
-  if (randomOppositionPosition !== "center") {
-    mapPositions.value.center = shuffledItems.slice(15, 18);
+  for (const position of ["top", "left", "right", "center"]) {
+    if (position !== randomOppositionPosition) {
+      if (position === "center") {
+        mapPositions.value[position] = shuffledItems.slice(index, index + 4);
+        index += 4;
+      } else {
+        mapPositions.value[position] = shuffledItems.slice(index, index + 4);
+        index += 4;
+      }
+    }
   }
 };
 
-// Initialize randomized map items
 randomizeMapItems();
 
 watch(

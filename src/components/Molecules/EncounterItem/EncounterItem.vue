@@ -29,7 +29,7 @@
 </template>
 
 <script setup>
-import { ref, computed, defineProps, defineEmits } from "vue";
+import { ref, computed } from "vue";
 import EditEncounterModal from "@/organisms/EditEncounterModal/EditEncounterModal.vue";
 
 const props = defineProps({

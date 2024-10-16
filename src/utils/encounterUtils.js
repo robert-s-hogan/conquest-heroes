@@ -1,5 +1,25 @@
 // src/utils/encounterUtils.js
 
+export const difficultyOptions = ["Easy", "Medium", "Hard", "Deadly"];
+export const terrainOptions = [
+  "Volcanic Island",
+  "Forest",
+  "Desert",
+  "Mountain",
+];
+export const timeOfDayOptions = ["Day", "Night", "Dawn", "Dusk"];
+export const weatherOptions = [
+  "Clear",
+  "Rainy",
+  "Stormy",
+  "Light Sandstorm (getting worse)",
+];
+export const objectivesOptions = [
+  "Remove all Enemies from the area",
+  "Rescue the Hostage",
+  "Defend the Base",
+];
+
 export function generateEncounterNumber(encounters) {
   return encounters.length > 0
     ? Math.max(...encounters.map((encounter) => encounter.encounterNumber)) + 1
@@ -30,8 +50,9 @@ export function getXpThresholdsByCharacterLevel(level) {
 }
 
 export function getRandomEncounterDifficultyOption() {
-  const options = ["Easy", "Medium", "Hard", "Deadly"];
-  return options[Math.floor(Math.random() * options.length)];
+  return difficultyOptions[
+    Math.floor(Math.random() * difficultyOptions.length)
+  ];
 }
 
 export function getRandomEncounterOppositionType() {
@@ -65,8 +86,7 @@ export function getRandomTimeBetweenEncounters() {
 }
 
 export function getRandomMapTerrainType() {
-  const terrains = ["Volcanic Island", "Forest", "Desert", "Mountain"];
-  return terrains[Math.floor(Math.random() * terrains.length)];
+  return terrainOptions[Math.floor(Math.random() * terrainOptions.length)];
 }
 
 export function getRandomStartingQuadrant() {
@@ -74,29 +94,17 @@ export function getRandomStartingQuadrant() {
 }
 
 export function getRandomObjectivesOfEncounter() {
-  const objectives = [
-    "Remove all Enemies from the area",
-    "Rescue the Hostage",
-    "Defend the Base",
+  return objectivesOptions[
+    Math.floor(Math.random() * objectivesOptions.length)
   ];
-  return objectives[Math.floor(Math.random() * objectives.length)];
 }
 
 export function getRandomTimeOfDay() {
-  const times = ["Day", "Night", "Dawn", "Dusk"];
-  return times[Math.floor(Math.random() * times.length)];
+  return timeOfDayOptions[Math.floor(Math.random() * timeOfDayOptions.length)];
 }
 
 export function getRandomWeather() {
-  const weatherConditions = [
-    "Clear",
-    "Rainy",
-    "Stormy",
-    "Light Sandstorm (getting worse)",
-  ];
-  return weatherConditions[
-    Math.floor(Math.random() * weatherConditions.length)
-  ];
+  return weatherOptions[Math.floor(Math.random() * weatherOptions.length)];
 }
 
 export function getRandomGoldEarned() {

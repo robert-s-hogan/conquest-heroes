@@ -21,6 +21,33 @@
         placeholder="Enter adjusted experience"
       />
 
+      <!-- Select Fields -->
+      <SelectField
+        v-model="encounterDifficultyOption"
+        label="Encounter Difficulty Option"
+        :options="difficultyOptionsRef"
+      />
+      <SelectField
+        v-model="mapTerrainType"
+        label="Map Terrain Type"
+        :options="terrainOptionsRef"
+      />
+      <SelectField
+        v-model="timeOfDay"
+        label="Time of Day"
+        :options="timeOfDayOptionsRef"
+      />
+      <SelectField
+        v-model="weather"
+        label="Weather"
+        :options="weatherOptionsRef"
+      />
+      <SelectField
+        v-model="objectivesOfEncounter"
+        label="Objectives"
+        :options="objectivesOptionsRef"
+      />
+
       <Button :loading="isSubmitting" variant="primary" class="w-full mt-4">
         Add Encounter
       </Button>
@@ -34,6 +61,18 @@ import InputField from "@/atoms/Input/Input.vue";
 import SelectField from "@/atoms/SelectField/SelectField.vue";
 import BaseModal from "@/atoms/Modal/Modal.vue";
 import Button from "@/atoms/Button/Button.vue";
+import {
+  getRandomEncounterDifficultyOption,
+  getRandomMapTerrainType,
+  getRandomTimeOfDay,
+  getRandomWeather,
+  getRandomObjectivesOfEncounter,
+  difficultyOptions,
+  terrainOptions,
+  timeOfDayOptions,
+  weatherOptions,
+  objectivesOptions,
+} from "@/utils/encounterUtils";
 
 const emit = defineEmits(["close", "submit"]);
 
@@ -50,81 +89,39 @@ const timeOfDay = ref("");
 const weather = ref("");
 const objectivesOfEncounter = ref("");
 
-// Options for SelectFields
-const difficultyOptions = ref([
-  { value: "Easy", label: "Easy" },
-  { value: "Medium", label: "Medium" },
-  { value: "Hard", label: "Hard" },
-  { value: "Deadly", label: "Deadly" },
-]);
-
-const terrainOptions = ref([
-  { value: "Volcanic Island", label: "Volcanic Island" },
-  { value: "Forest", label: "Forest" },
-  { value: "Desert", label: "Desert" },
-  { value: "Mountain", label: "Mountain" },
-]);
-
-const timeOfDayOptions = ref([
-  { value: "Day", label: "Day" },
-  { value: "Night", label: "Night" },
-  { value: "Dawn", label: "Dawn" },
-  { value: "Dusk", label: "Dusk" },
-]);
-
-const weatherOptions = ref([
-  { value: "Clear", label: "Clear" },
-  { value: "Rainy", label: "Rainy" },
-  { value: "Stormy", label: "Stormy" },
-  {
-    value: "Light Sandstorm (getting worse)",
-    label: "Light Sandstorm (getting worse)",
-  },
-]);
-
-const objectiveOptions = ref([
-  {
-    value: "Remove all Enemies from the area",
-    label: "Remove all Enemies from the area",
-  },
-  { value: "Rescue the Hostage", label: "Rescue the Hostage" },
-  { value: "Defend the Base", label: "Defend the Base" },
-]);
-
-// Shuffle function
-const shuffle = (array) => {
-  return array
-    .map((value) => ({ value, sort: Math.random() }))
-    .sort((a, b) => a.sort - b.sort)
-    .map(({ value }) => value);
-};
-
-// Shuffle the options on reset or on modal open
-const randomizeOptions = () => {
-  difficultyOptions.value = shuffle(difficultyOptions.value);
-  terrainOptions.value = shuffle(terrainOptions.value);
-  timeOfDayOptions.value = shuffle(timeOfDayOptions.value);
-  weatherOptions.value = shuffle(weatherOptions.value);
-  objectiveOptions.value = shuffle(objectiveOptions.value);
-};
-
-const closeModal = () => {
-  emit("close");
-  resetForm();
-};
+// Convert options arrays into the format expected by SelectField
+const difficultyOptionsRef = ref(
+  difficultyOptions.map((value) => ({ value, label: value }))
+);
+const terrainOptionsRef = ref(
+  terrainOptions.map((value) => ({ value, label: value }))
+);
+const timeOfDayOptionsRef = ref(
+  timeOfDayOptions.map((value) => ({ value, label: value }))
+);
+const weatherOptionsRef = ref(
+  weatherOptions.map((value) => ({ value, label: value }))
+);
+const objectivesOptionsRef = ref(
+  objectivesOptions.map((value) => ({ value, label: value }))
+);
 
 const resetForm = () => {
   numberOfPlayers.value = 0;
   encounterExperience.value = 0;
   encounterAdjustedExperience.value = 0;
-  encounterDifficultyOption.value = "";
-  mapTerrainType.value = "";
-  timeOfDay.value = "";
-  weather.value = "";
-  objectivesOfEncounter.value = "";
 
-  // Randomize the options each time the form resets
-  randomizeOptions();
+  // Use random functions from encounterUtils.js
+  encounterDifficultyOption.value = getRandomEncounterDifficultyOption();
+  mapTerrainType.value = getRandomMapTerrainType();
+  timeOfDay.value = getRandomTimeOfDay();
+  weather.value = getRandomWeather();
+  objectivesOfEncounter.value = getRandomObjectivesOfEncounter();
+};
+
+const closeModal = () => {
+  emit("close");
+  resetForm();
 };
 
 const handleSubmit = () => {
