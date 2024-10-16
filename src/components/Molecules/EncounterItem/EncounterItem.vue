@@ -58,13 +58,18 @@ const handleDeleteEncounter = (encounterId) => {
 };
 
 const encounterTitle = computed(() => {
-  return `Encounter: ${props.encounter.encounterDifficulty || "N/A"}`;
+  return `Encounter: #${props.encounter.encounterNumber || "N/A"}`;
 });
 
 const encounterDescription = computed(() => {
-  return `XP: ${
+  return `Encounter Adj. XP: ${
     props.encounter.encounterAdjustedExperience || "No data"
-  }, Gold: ${props.encounter.goldEarned || "No data"}`;
+  }, Encounter XP: ${props.encounter.encounterExperience || "No data"}
+  Players: ${props.encounter.numberOfPlayers || "N/A"}`;
+});
+
+const encounterPlayerCount = computed(() => {
+  return `Players: ${props.encounter.numberOfPlayers || "N/A"}`;
 });
 
 const formattedDate = computed(() => {
