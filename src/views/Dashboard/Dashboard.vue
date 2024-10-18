@@ -64,10 +64,10 @@
             <Heading title="Encounters" level="2" />
             <div>
               <button
-                @click="isEncounterModalOpen = true"
+                @click="handleAddEncounter"
                 class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
               >
-                Add Encounter
+                Generate Encounter
               </button>
             </div>
           </div>
@@ -112,12 +112,6 @@
           @close="isEditModalOpen = false"
           @update="handleEditCampaign"
         />
-
-        <AddEncounterModal
-          :isOpen="isEncounterModalOpen"
-          @close="isEncounterModalOpen = false"
-          @submit="handleAddEncounter"
-        />
       </main>
     </div>
   </div>
@@ -137,6 +131,7 @@ import EditCampaignModal from "@/components/Organisms/EditCampaignModal/EditCamp
 
 import { useCampaignData } from "@/composables/Campaign/useCampaignData";
 import { useEncounter } from "@/composables/Encounter/useEncounter";
+import { generateEncounterData } from "@/utils/encounterDataGenerator";
 
 // Campaign composable setup
 const {
@@ -182,13 +177,31 @@ watch(
   { immediate: true }
 );
 
-const handleAddEncounter = async (encounterData) => {
+const handleAddEncounter = async () => {
   if (currentCampaign.value?.id) {
+    console.log("Encounters before generating:", encounters.value);
+
+    const encounterData = generateEncounterData(
+      currentCampaign.value,
+      encounters.value
+    );
+
+    // Debugging encounter data
+    console.log("Generated encounter data:", encounterData);
+
+    // Check if the encounterData is valid
+    if (!encounterData.players || encounterData.players.length === 0) {
+      console.error(
+        "Encounter data has missing or undefined players",
+        encounterData
+      );
+      return; // Prevent the call if data is invalid
+    }
+
     await addEncounter({
       ...encounterData,
       campaignId: currentCampaign.value.id,
     });
-    // No need to refetch encounters; they are reactive
   }
 };
 

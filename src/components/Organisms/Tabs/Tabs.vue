@@ -40,9 +40,9 @@
 
 <script setup>
 import { ref } from "vue";
-import TabList from "@/components/molecules/TabList/TabList.vue";
-import TabButton from "@/components/atoms/TabButton/TabButton.vue";
-import TabPanel from "@/components/molecules/TabPanel/TabPanel.vue";
+import TabList from "@/components/Molecules/TabList/TabList.vue";
+import TabButton from "@/components/Atoms/TabButton/TabButton.vue";
+import TabPanel from "@/components/Molecules/TabPanel/TabPanel.vue";
 
 const props = defineProps({
   tabs: {

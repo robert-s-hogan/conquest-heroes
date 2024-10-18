@@ -10,27 +10,7 @@ import {
   updateCampaignInFirebase,
   fetchCampaignById,
 } from "@/services/Campaign/campaignService";
-import {
-  generateEncounterNumber,
-  generateDate,
-  getPlayers,
-  getNumberOfPlayers,
-  getXpThresholdsByCharacterLevel,
-  getRandomEncounterDifficultyOption,
-  getRandomEncounterOppositionType,
-  calculateEncounterExperience,
-  calculatePercentOfAdventuringDayXpRemaining,
-  getRandomBoolean,
-  getRandomTimeBetweenEncounters,
-  calculateRemainingAdventuringDayXP,
-  getRandomMapTerrainType,
-  getRandomStartingQuadrant,
-  getRandomObjectivesOfEncounter,
-  getRandomTimeOfDay,
-  getRandomWeather,
-  getRandomGoldEarned,
-  getRandomDoesCaravanAppear,
-} from "@/utils/encounterUtils";
+import { calculateRemainingAdventuringDayXP } from "@/utils/encounterUtils";
 
 export function useEncounter(campaignIdRef) {
   const encounters = ref([]);
@@ -55,77 +35,24 @@ export function useEncounter(campaignIdRef) {
       console.error("campaignId is not defined.");
       return;
     }
+
     try {
-      // Determine the next ID
+      // Determine the next ID for the new encounter
       const nextId =
         encounters.value.length > 0
           ? Math.max(...encounters.value.map((encounter) => encounter.id)) + 1
           : 1;
 
-      const encounterNumber = generateEncounterNumber(encounters.value);
-      const date = generateDate();
-      const players = getPlayers(encounterData.numberOfPlayers);
-      const numberOfPlayers = encounterData.numberOfPlayers;
-      const xpThresholdsByCharacterLevel = getXpThresholdsByCharacterLevel(
-        encounterData.levelOfPlayerCharacters || 4 // Default level
-      );
-      const encounterDifficultyOption = encounterData.encounterDifficultyOption;
-      const encounterOppositionType = getRandomEncounterOppositionType();
-      const encounterExperience = encounterData.encounterExperience;
-      const percentOfAdventuringDayXpRemaining =
-        calculatePercentOfAdventuringDayXpRemaining(
-          encounterData.adventuringDayXpLimit || 6800,
-          encounterData.groupExperience || 0
-        );
-      const shortRestNeededFirstOne = getRandomBoolean();
-      const shortRestNeededSecondOne = getRandomBoolean();
-      const shortRestCounter =
-        shortRestNeededFirstOne + shortRestNeededSecondOne;
-      const longRestNeeded = getRandomBoolean();
-      const timeSpentResting = "-";
-      const timeBetweenEncounters = getRandomTimeBetweenEncounters();
-      const mapTerrainType = getRandomMapTerrainType();
-      const startingQuadrantOfOppositionOnMap = getRandomStartingQuadrant();
-      const objectivesOfEncounter = getRandomObjectivesOfEncounter();
-      const timeOfDay = getRandomTimeOfDay();
-      const weather = getRandomWeather();
-      const goldEarnedFromEncounter = getRandomGoldEarned();
-      const doesCaravanAppear = getRandomDoesCaravanAppear();
-
       // Create new encounter with the sequential ID
       const newEncounter = {
         ...encounterData,
         id: nextId,
-        date,
-        encounterNumber,
-        players,
-        numberOfPlayers,
-        deathPenaltyMultiplierChange: 0,
-        adventuringDayXpLimitDifference: 0,
-        xpThresholdsByCharacterLevel,
-        encounterDifficultyOption,
-        encounterOppositionType,
-        encounterAdjustedExperience:
-          encounterData.encounterAdjustedExperience || 440,
-        encounterExperience,
-        groupExperienceEarnedFromEncounter:
-          encounterData.groupExperienceEarnedFromEncounter || 110,
-        percentOfAdventuringDayXpRemaining,
-        shortRestNeededFirstOne,
-        shortRestNeededSecondOne,
-        shortRestCounter,
-        longRestNeeded,
-        timeSpentResting,
-        timeBetweenEncounters,
-        mapTerrainType,
-        startingQuadrantOfOppositionOnMap,
-        objectivesOfEncounter,
-        timeOfDay,
-        weather,
-        goldEarnedFromEncounter:
-          encounterData.goldEarnedFromEncounter || goldEarnedFromEncounter,
-        doesCaravanAppear,
       };
+
+      // Check if players exist in the encounter data
+      if (!newEncounter.players || newEncounter.players.length === 0) {
+        throw new Error("Players field is invalid");
+      }
 
       const encounterWithId = await addEncounterToService(
         campaignIdRef.value,
@@ -188,7 +115,7 @@ export function useEncounter(campaignIdRef) {
   const updateRemainingAdventuringDayXP = async () => {
     if (campaignIdRef.value) {
       const campaignId = campaignIdRef.value;
-      const campaign = await fetchCampaignById(campaignId); // Ensure this function exists
+      const campaign = await fetchCampaignById(campaignId);
       const remainingXP = await calculateRemainingAdventuringDayXP(
         campaign.adventuringDayXpLimit,
         campaignId
@@ -201,7 +128,7 @@ export function useEncounter(campaignIdRef) {
     }
   };
 
-  // Watch the campaignIdRef and only fetch encounters if there's a valid ID
+  // Watch the campaignIdRef and fetch encounters when it changes
   watch(
     campaignIdRef,
     async (newCampaignId) => {
