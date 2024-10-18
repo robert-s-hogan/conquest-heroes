@@ -7,51 +7,15 @@
   >
     <form @submit.prevent="handleSubmit">
       <div class="grid grid-cols-1 md:grid-cols-2">
-        <div>
-          <!-- Input Fields -->
-          <InputField
-            v-model="encounterData.numberOfPlayers"
-            label="Number of Players"
-            type="number"
-          />
-          <InputField
-            v-model="encounterData.encounterExperience"
-            label="Encounter Experience"
-            type="number"
-          />
-          <InputField
-            v-model="encounterData.encounterAdjustedExperience"
-            label="Encounter Adjusted Experience"
-            type="number"
-          />
-
-          <!-- Select Fields -->
-          <SelectField
-            v-model="encounterData.encounterDifficultyOption"
-            label="Encounter Difficulty Option"
-            :options="difficultyOptionsRef"
-          />
-          <SelectField
-            v-model="encounterData.mapTerrainType"
-            label="Map Terrain Type"
-            :options="terrainOptionsRef"
-          />
-          <SelectField
-            v-model="encounterData.timeOfDay"
-            label="Time of Day"
-            :options="timeOfDayOptionsRef"
-          />
-          <SelectField
-            v-model="encounterData.weather"
-            label="Weather"
-            :options="weatherOptionsRef"
-          />
-          <SelectField
-            v-model="encounterData.objectivesOfEncounter"
-            label="Objectives"
-            :options="objectivesOptionsRef"
-          />
-        </div>
+        <Tabs
+          :tabs="tabs"
+          :encounterData="encounterData"
+          :difficultyOptionsRef="difficultyOptionsRef"
+          :terrainOptionsRef="terrainOptionsRef"
+          :timeOfDayOptionsRef="timeOfDayOptionsRef"
+          :weatherOptionsRef="weatherOptionsRef"
+          :objectivesOptionsRef="objectivesOptionsRef"
+        />
         <div>
           <div class="mt-8 grid grid-cols-3 text-center p-4 rounded-lg">
             <!-- Top Section -->
@@ -153,11 +117,16 @@
 
 <script setup>
 import { ref, watch } from "vue";
-import Modal from "@/components/Atoms/Modal/Modal.vue";
 import InputField from "@/components/Atoms/Input/Input.vue";
 import SelectField from "@/components/Atoms/SelectField/SelectField.vue";
+import Modal from "@/components/Atoms/Modal/Modal.vue";
 import Button from "@/components/Atoms/Button/Button.vue";
 import Heading from "@/components/Atoms/Heading/Heading.vue";
+import CaravanContent from "@/components/Atoms/CaravanContent/CaravanContent.vue";
+import MapDetailsContent from "@/components/Atoms/MapDetailsContent/MapDetailsContent.vue";
+import XPDetailsContent from "@/components/Atoms/XPDetailsContent/XPDetailsContent.vue";
+import Tabs from "@/components/Organisms/Tabs/Tabs.vue";
+
 import {
   difficultyOptions,
   terrainOptions,
@@ -182,6 +151,31 @@ const emit = defineEmits(["close", "update", "delete"]);
 const encounterData = ref({ ...props.encounter });
 const isSubmitting = ref(false);
 const isDeleting = ref(false);
+
+// Tabs Configuration
+const tabs = [
+  {
+    id: "xp-details",
+    label: "XP Details",
+    component: XPDetailsContent,
+    variant: "danger",
+    loading: false,
+  },
+  {
+    id: "map-details",
+    label: "Map Details",
+    component: MapDetailsContent,
+    variant: "primaryOutlined",
+    loading: false,
+  },
+  {
+    id: "caravan",
+    label: "Caravan",
+    component: CaravanContent,
+    variant: "primary",
+    loading: false,
+  },
+];
 
 // Convert options arrays into the format expected by SelectField
 const difficultyOptionsRef = ref(

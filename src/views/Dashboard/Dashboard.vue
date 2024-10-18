@@ -124,7 +124,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from "vue";
+import { ref, onMounted, computed, watch, provide } from "vue";
 
 import Button from "@/components/Atoms/Button/Button.vue";
 import Heading from "@/components/Atoms/Heading/Heading.vue";
@@ -157,6 +157,7 @@ const isDeletingEncounter = ref(false);
 
 // Define campaignIdRef as a computed property
 const campaignIdRef = computed(() => currentCampaign.value?.id);
+provide("currentCampaign", currentCampaign);
 
 // Use useEncounter with campaignIdRef
 const {
