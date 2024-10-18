@@ -197,3 +197,10 @@ export function calculateXpFields(playerStartExperience) {
     currentAdventuringDayXp: adventuringDayXpLimit,
   };
 }
+
+export function calculateRemainingAdventuringDayXP(
+  adventuringDayXpLimit,
+  usedXp
+) {
+  return adventuringDayXpLimit - usedXp;
+}

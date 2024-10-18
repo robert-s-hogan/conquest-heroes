@@ -66,4 +66,5 @@ export async function deleteEncounter(campaignId, encounterId) {
   }
   const docRef = doc(db, "campaigns", campaignId, "encounters", encounterId);
   await deleteDoc(docRef);
+  console.log(`Encounter with ID ${encounterId} deleted successfully.`); // Log this
 }

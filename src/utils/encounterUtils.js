@@ -7,6 +7,26 @@ export const terrainOptions = [
   "Desert",
   "Mountain",
 ];
+
+// New function to get available difficulties based on remaining XP
+export function getAvailableDifficulties(
+  xpThresholds,
+  remainingAdventuringDayXP
+) {
+  return Object.entries(xpThresholds)
+    .filter(([difficulty, xp]) => xp <= remainingAdventuringDayXP)
+    .map(
+      ([difficulty]) => difficulty.charAt(0).toUpperCase() + difficulty.slice(1)
+    );
+}
+
+// Modified function to get random encounter difficulty option based on available difficulties
+export function getRandomEncounterDifficultyOption(availableDifficulties) {
+  const difficulties =
+    availableDifficulties.length > 0 ? availableDifficulties : ["Easy"];
+  return difficulties[Math.floor(Math.random() * difficulties.length)];
+}
+
 export const timeOfDayOptions = ["Day", "Night", "Dawn", "Dusk"];
 export const weatherOptions = [
   "Clear",
@@ -49,10 +69,11 @@ export function getXpThresholdsByCharacterLevel(level) {
   };
 }
 
-export function getRandomEncounterDifficultyOption() {
-  return difficultyOptions[
-    Math.floor(Math.random() * difficultyOptions.length)
-  ];
+export function calculateRemainingAdventuringDayXP(
+  adventuringDayXpLimit,
+  usedXp
+) {
+  return adventuringDayXpLimit - usedXp;
 }
 
 export function getRandomEncounterOppositionType() {

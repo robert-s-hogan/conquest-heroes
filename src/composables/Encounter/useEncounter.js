@@ -7,6 +7,10 @@ import {
   updateEncounter as updateEncounterInService,
 } from "@/services/Encounter/encounterService";
 import {
+  updateCampaignInFirebase,
+  fetchCampaignById,
+} from "@/services/Campaign/campaignService";
+import {
   generateEncounterNumber,
   generateDate,
   getPlayers,
@@ -18,6 +22,7 @@ import {
   calculatePercentOfAdventuringDayXpRemaining,
   getRandomBoolean,
   getRandomTimeBetweenEncounters,
+  calculateRemainingAdventuringDayXP,
   getRandomMapTerrainType,
   getRandomStartingQuadrant,
   getRandomObjectivesOfEncounter,
@@ -39,7 +44,6 @@ export function useEncounter(campaignIdRef) {
     try {
       const data = await fetchEncountersFromService(campaignIdRef.value);
       encounters.value = data;
-      console.log("Fetched encounters:", encounters.value);
     } catch (error) {
       console.error("Error fetching encounters:", error);
       encounters.value = [];
@@ -130,6 +134,7 @@ export function useEncounter(campaignIdRef) {
       encounters.value.push(encounterWithId);
       console.log("Encounter added:", encounterWithId);
 
+      await updateRemainingAdventuringDayXP();
       await fetchEncounters(); // Refresh encounters after adding a new one
     } catch (error) {
       console.error("Error adding encounter:", error);
@@ -147,6 +152,7 @@ export function useEncounter(campaignIdRef) {
         (encounter) => encounter.id !== encounterId
       );
       console.log("Encounter deleted:", encounterId);
+      await updateRemainingAdventuringDayXP();
 
       await fetchEncounters(); // Refresh encounters after deletion
     } catch (error) {
@@ -172,9 +178,26 @@ export function useEncounter(campaignIdRef) {
       if (index !== -1) {
         encounters.value[index] = { ...updatedEncounter };
       }
+
       console.log("Encounter updated:", updatedEncounter.id);
     } catch (error) {
       console.error("Error updating encounter:", error);
+    }
+  };
+
+  const updateRemainingAdventuringDayXP = async () => {
+    if (campaignIdRef.value) {
+      const campaignId = campaignIdRef.value;
+      const campaign = await fetchCampaignById(campaignId); // Ensure this function exists
+      const remainingXP = await calculateRemainingAdventuringDayXP(
+        campaign.adventuringDayXpLimit,
+        campaignId
+      );
+
+      // Update the campaign with the new remainingAdventuringDayXP
+      await updateCampaignInFirebase(campaignId, {
+        remainingAdventuringDayXP: remainingXP,
+      });
     }
   };
 
@@ -197,5 +220,6 @@ export function useEncounter(campaignIdRef) {
     addEncounter,
     deleteEncounter,
     updateEncounter,
+    updateRemainingAdventuringDayXP,
   };
 }
