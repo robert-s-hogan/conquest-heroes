@@ -7,25 +7,10 @@ import {
   updateEncounter as updateEncounterInService,
 } from "@/services/Encounter/encounterService";
 import {
-  generateEncounterNumber,
-  generateDate,
-  getPlayers,
-  getNumberOfPlayers,
-  getXpThresholdsByCharacterLevel,
-  getRandomEncounterDifficultyOption,
-  getRandomEncounterOppositionType,
-  calculateEncounterExperience,
-  calculatePercentOfAdventuringDayXpRemaining,
-  getRandomBoolean,
-  getRandomTimeBetweenEncounters,
-  getRandomMapTerrainType,
-  getRandomStartingQuadrant,
-  getRandomObjectivesOfEncounter,
-  getRandomTimeOfDay,
-  getRandomWeather,
-  getRandomGoldEarned,
-  getRandomDoesCaravanAppear,
-} from "@/utils/encounterUtils";
+  updateCampaignInFirebase,
+  fetchCampaignById,
+} from "@/services/Campaign/campaignService";
+import { calculateRemainingAdventuringDayXP } from "@/utils/encounterUtils";
 
 export function useEncounter(campaignIdRef) {
   const encounters = ref([]);
@@ -39,7 +24,6 @@ export function useEncounter(campaignIdRef) {
     try {
       const data = await fetchEncountersFromService(campaignIdRef.value);
       encounters.value = data;
-      console.log("Fetched encounters:", encounters.value);
     } catch (error) {
       console.error("Error fetching encounters:", error);
       encounters.value = [];
@@ -51,77 +35,24 @@ export function useEncounter(campaignIdRef) {
       console.error("campaignId is not defined.");
       return;
     }
+
     try {
-      // Determine the next ID
+      // Determine the next ID for the new encounter
       const nextId =
         encounters.value.length > 0
           ? Math.max(...encounters.value.map((encounter) => encounter.id)) + 1
           : 1;
 
-      const encounterNumber = generateEncounterNumber(encounters.value);
-      const date = generateDate();
-      const players = getPlayers(encounterData.numberOfPlayers);
-      const numberOfPlayers = encounterData.numberOfPlayers;
-      const xpThresholdsByCharacterLevel = getXpThresholdsByCharacterLevel(
-        encounterData.levelOfPlayerCharacters || 4 // Default level
-      );
-      const encounterDifficultyOption = encounterData.encounterDifficultyOption;
-      const encounterOppositionType = getRandomEncounterOppositionType();
-      const encounterExperience = encounterData.encounterExperience;
-      const percentOfAdventuringDayXpRemaining =
-        calculatePercentOfAdventuringDayXpRemaining(
-          encounterData.adventuringDayXpLimit || 6800,
-          encounterData.groupExperience || 0
-        );
-      const shortRestNeededFirstOne = getRandomBoolean();
-      const shortRestNeededSecondOne = getRandomBoolean();
-      const shortRestCounter =
-        shortRestNeededFirstOne + shortRestNeededSecondOne;
-      const longRestNeeded = getRandomBoolean();
-      const timeSpentResting = "-";
-      const timeBetweenEncounters = getRandomTimeBetweenEncounters();
-      const mapTerrainType = getRandomMapTerrainType();
-      const startingQuadrantOfOppositionOnMap = getRandomStartingQuadrant();
-      const objectivesOfEncounter = getRandomObjectivesOfEncounter();
-      const timeOfDay = getRandomTimeOfDay();
-      const weather = getRandomWeather();
-      const goldEarnedFromEncounter = getRandomGoldEarned();
-      const doesCaravanAppear = getRandomDoesCaravanAppear();
-
       // Create new encounter with the sequential ID
       const newEncounter = {
         ...encounterData,
         id: nextId,
-        date,
-        encounterNumber,
-        players,
-        numberOfPlayers,
-        deathPenaltyMultiplierChange: 0,
-        adventuringDayXpLimitDifference: 0,
-        xpThresholdsByCharacterLevel,
-        encounterDifficultyOption,
-        encounterOppositionType,
-        encounterAdjustedExperience:
-          encounterData.encounterAdjustedExperience || 440,
-        encounterExperience,
-        groupExperienceEarnedFromEncounter:
-          encounterData.groupExperienceEarnedFromEncounter || 110,
-        percentOfAdventuringDayXpRemaining,
-        shortRestNeededFirstOne,
-        shortRestNeededSecondOne,
-        shortRestCounter,
-        longRestNeeded,
-        timeSpentResting,
-        timeBetweenEncounters,
-        mapTerrainType,
-        startingQuadrantOfOppositionOnMap,
-        objectivesOfEncounter,
-        timeOfDay,
-        weather,
-        goldEarnedFromEncounter:
-          encounterData.goldEarnedFromEncounter || goldEarnedFromEncounter,
-        doesCaravanAppear,
       };
+
+      // Check if players exist in the encounter data
+      if (!newEncounter.players || newEncounter.players.length === 0) {
+        throw new Error("Players field is invalid");
+      }
 
       const encounterWithId = await addEncounterToService(
         campaignIdRef.value,
@@ -130,6 +61,7 @@ export function useEncounter(campaignIdRef) {
       encounters.value.push(encounterWithId);
       console.log("Encounter added:", encounterWithId);
 
+      await updateRemainingAdventuringDayXP();
       await fetchEncounters(); // Refresh encounters after adding a new one
     } catch (error) {
       console.error("Error adding encounter:", error);
@@ -147,6 +79,7 @@ export function useEncounter(campaignIdRef) {
         (encounter) => encounter.id !== encounterId
       );
       console.log("Encounter deleted:", encounterId);
+      await updateRemainingAdventuringDayXP();
 
       await fetchEncounters(); // Refresh encounters after deletion
     } catch (error) {
@@ -172,13 +105,30 @@ export function useEncounter(campaignIdRef) {
       if (index !== -1) {
         encounters.value[index] = { ...updatedEncounter };
       }
+
       console.log("Encounter updated:", updatedEncounter.id);
     } catch (error) {
       console.error("Error updating encounter:", error);
     }
   };
 
-  // Watch the campaignIdRef and only fetch encounters if there's a valid ID
+  const updateRemainingAdventuringDayXP = async () => {
+    if (campaignIdRef.value) {
+      const campaignId = campaignIdRef.value;
+      const campaign = await fetchCampaignById(campaignId);
+      const remainingXP = await calculateRemainingAdventuringDayXP(
+        campaign.adventuringDayXpLimit,
+        campaignId
+      );
+
+      // Update the campaign with the new remainingAdventuringDayXP
+      await updateCampaignInFirebase(campaignId, {
+        remainingAdventuringDayXP: remainingXP,
+      });
+    }
+  };
+
+  // Watch the campaignIdRef and fetch encounters when it changes
   watch(
     campaignIdRef,
     async (newCampaignId) => {
@@ -197,5 +147,6 @@ export function useEncounter(campaignIdRef) {
     addEncounter,
     deleteEncounter,
     updateEncounter,
+    updateRemainingAdventuringDayXP,
   };
 }

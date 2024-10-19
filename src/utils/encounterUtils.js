@@ -1,4 +1,5 @@
 // src/utils/encounterUtils.js
+import { xpThresholdsByCharLvl } from "@/utils/xpTables";
 
 export const difficultyOptions = ["Easy", "Medium", "Hard", "Deadly"];
 export const terrainOptions = [
@@ -7,6 +8,26 @@ export const terrainOptions = [
   "Desert",
   "Mountain",
 ];
+
+export function getAvailableDifficulties(
+  xpThresholds,
+  remainingAdventuringDayXP
+) {
+  return Object.entries(xpThresholds)
+    .filter(([_, xp]) => xp <= remainingAdventuringDayXP)
+    .map(
+      ([difficulty]) => difficulty.charAt(0).toUpperCase() + difficulty.slice(1)
+    );
+}
+
+export function getRandomEncounterDifficultyOption(
+  availableDifficulties = difficultyOptions
+) {
+  return availableDifficulties[
+    Math.floor(Math.random() * availableDifficulties.length)
+  ];
+}
+
 export const timeOfDayOptions = ["Day", "Night", "Dawn", "Dusk"];
 export const weatherOptions = [
   "Clear",
@@ -20,6 +41,10 @@ export const objectivesOptions = [
   "Defend the Base",
 ];
 
+export function generateMapLocationsWithItems() {
+  // Your implementation
+}
+
 export function generateEncounterNumber(encounters) {
   return encounters.length > 0
     ? Math.max(...encounters.map((encounter) => encounter.encounterNumber)) + 1
@@ -30,29 +55,27 @@ export function generateDate() {
   return new Date().toISOString();
 }
 
-export function getPlayers() {
-  // Fetch or define players; for now, return a sample array
-  return ["Alice", "Bob", "Charlie", "Dave"];
-}
-
-export function getNumberOfPlayers(players) {
-  return players.length;
+export function getPlayers(numberOfPlayers) {
+  const players = ["Player 1", "Player 2", "Player 3", "Player 4"];
+  return players;
 }
 
 export function getXpThresholdsByCharacterLevel(level) {
-  // This function can be expanded to return thresholds based on the level
-  return {
-    easy: 500,
-    medium: 1000,
-    hard: 1500,
-    deadly: 2000,
-  };
+  return (
+    xpThresholdsByCharLvl[level] || {
+      easy: 0,
+      medium: 0,
+      hard: 0,
+      deadly: 0,
+    }
+  );
 }
 
-export function getRandomEncounterDifficultyOption() {
-  return difficultyOptions[
-    Math.floor(Math.random() * difficultyOptions.length)
-  ];
+export function calculateRemainingAdventuringDayXP(
+  adventuringDayXpLimit,
+  usedXp
+) {
+  return adventuringDayXpLimit - usedXp;
 }
 
 export function getRandomEncounterOppositionType() {
@@ -60,16 +83,29 @@ export function getRandomEncounterOppositionType() {
   return types[Math.floor(Math.random() * types.length)];
 }
 
-export function calculateEncounterExperience() {
-  // Placeholder function; replace with your actual calculation
-  return 440;
+export function calculateEncounterExperience(
+  encounterDifficultyOption,
+  levelOfPlayerCharacters,
+  numberOfPlayers
+) {
+  // Ensure that the logic properly calculates experience based on inputs
+  const baseXP =
+    xpThresholdsByCharLvl[levelOfPlayerCharacters]?.[
+      encounterDifficultyOption.toLowerCase()
+    ];
+
+  if (baseXP) {
+    return baseXP * numberOfPlayers; // Example logic
+  }
+
+  console.error("Failed to calculate encounter experience");
+  return 0; // Return a default value or handle the error
 }
 
 export function calculatePercentOfAdventuringDayXpRemaining(
   adventuringDayXpLimit,
   groupExperience
 ) {
-  // Placeholder calculation
   const xpUsed = groupExperience || 0;
   const percentRemaining =
     ((adventuringDayXpLimit - xpUsed) / adventuringDayXpLimit) * 100;
@@ -108,7 +144,6 @@ export function getRandomWeather() {
 }
 
 export function getRandomGoldEarned() {
-  // Placeholder function; replace with your actual calculation
   return parseFloat((Math.random() * 100).toFixed(4));
 }
 
