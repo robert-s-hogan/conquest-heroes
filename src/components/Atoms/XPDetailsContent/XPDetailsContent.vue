@@ -1,48 +1,69 @@
-<!-- src/components/atoms/XPDetailsContent.vue -->
+<!-- src/components/atoms/MapDetailsContent.vue -->
 <template>
   <div>
-    <InputField
-      v-model="encounterData.numberOfPlayers"
-      label="Number of Players"
-      type="number"
-    />
-    <InputField
-      v-model="encounterData.encounterExperience"
-      label="Encounter Experience"
-      type="number"
-    />
-    <InputField
-      v-model="encounterData.encounterAdjustedExperience"
-      label="Encounter Adjusted Experience"
-      type="number"
+    <SelectField
+      v-model="localEncounterData.mapTerrainType"
+      label="Map Terrain Type"
+      :options="terrainOptionsRef"
     />
     <SelectField
-      v-model="encounterData.encounterDifficultyOption"
-      label="Difficulty"
-      :options="difficultyOptionsRef"
+      v-model="localEncounterData.timeOfDay"
+      label="Time of Day"
+      :options="timeOfDayOptionsRef"
     />
-
-    <!-- Add more XP-related fields here if necessary -->
+    <SelectField
+      v-model="localEncounterData.weather"
+      label="Weather"
+      :options="weatherOptionsRef"
+    />
+    <SelectField
+      v-model="localEncounterData.objectivesOfEncounter"
+      label="Objectives"
+      :options="objectivesOptionsRef"
+    />
   </div>
 </template>
 
 <script setup>
-import { defineProps } from "vue";
-import InputField from "@/components/Atoms/Input/Input.vue";
-import SelectField from "@/components/Atoms/SelectField/SelectField.vue";
+import { reactive, watch } from 'vue'
+import SelectField from '@/components/Atoms/BaseSelect/BaseSelect.vue'
 
+// Define props
 const props = defineProps({
   encounterData: {
     type: Object,
+    required: true,
+  },
+  terrainOptionsRef: {
+    type: Array,
+    required: true,
+  },
+  timeOfDayOptionsRef: {
+    type: Array,
+    required: true,
+  },
+  weatherOptionsRef: {
+    type: Array,
     required: true,
   },
   objectivesOptionsRef: {
     type: Array,
     required: true,
   },
-  difficultyOptionsRef: {
-    type: Array,
-    required: true,
+})
+
+// Define emits
+const emit = defineEmits(['update:encounterData'])
+
+// Create a reactive local copy of encounterData
+const localEncounterData = reactive({ ...props.encounterData })
+
+// Watch for changes in localEncounterData and emit updates
+watch(
+  () => ({ ...localEncounterData }),
+  (newData) => {
+    emit('update:encounterData', newData)
   },
-});
+  { deep: true }
+)
 </script>

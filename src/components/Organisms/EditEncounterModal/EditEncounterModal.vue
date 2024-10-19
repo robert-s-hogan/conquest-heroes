@@ -1,4 +1,4 @@
-<!-- EditEncounterModal.vue -->
+<!-- src/components/modals/EditEncounterModal.vue -->
 <template>
   <Modal
     :isOpen="isOpen"
@@ -16,7 +16,9 @@
           :timeOfDayOptionsRef="timeOfDayOptionsRef"
           :weatherOptionsRef="weatherOptionsRef"
           :objectivesOptionsRef="objectivesOptionsRef"
+          @update:encounterData="updateEncounterData"
         />
+
         <div>
           <!-- NPC Types -->
           <div class="mt-4">
@@ -101,14 +103,13 @@
 </template>
 
 <script setup>
-import { ref, watch, reactive } from "vue";
-import Modal from "@/components/Atoms/Modal/Modal.vue";
-import Button from "@/components/Atoms/Button/Button.vue";
-import Heading from "@/components/Atoms/Heading/Heading.vue";
-import CaravanContent from "@/components/Atoms/CaravanContent/CaravanContent.vue";
-import MapDetailsContent from "@/components/Atoms/MapDetailsContent/MapDetailsContent.vue";
-import XPDetailsContent from "@/components/Atoms/XPDetailsContent/XPDetailsContent.vue";
-import Tabs from "@/components/Organisms/Tabs/Tabs.vue";
+import { ref, watch, reactive } from 'vue'
+import Modal from '@/components/Atoms/BaseModal/BaseModal.vue'
+import Button from '@/components/Atoms/BaseButton/BaseButton.vue'
+import CaravanContent from '@/components/Atoms/CaravanContent/CaravanContent.vue'
+import MapDetailsContent from '@/components/Atoms/MapDetailsContent/MapDetailsContent.vue'
+import XPDetailsContent from '@/components/Atoms/XPDetailsContent/XPDetailsContent.vue'
+import Tabs from '@/components/Organisms/BaseTabs/BaseTabs.vue'
 
 import {
   difficultyOptions,
@@ -117,7 +118,7 @@ import {
   weatherOptions,
   objectivesOptions,
   generateMapLocationsWithItems,
-} from "@/utils/encounterUtils";
+} from '@/utils/encounterUtils'
 
 const props = defineProps({
   isOpen: {
@@ -128,107 +129,119 @@ const props = defineProps({
     type: Object,
     required: true,
   },
-});
+})
 
-const emit = defineEmits(["close", "update", "delete"]);
+const emit = defineEmits(['close', 'update', 'delete'])
 
-const encounterData = reactive({ ...props.encounter });
-const isSubmitting = ref(false);
-const isDeleting = ref(false);
+const encounterData = reactive({ ...props.encounter })
+const isSubmitting = ref(false)
+const isDeleting = ref(false)
 
 // Tabs Configuration
 const tabs = [
   {
-    id: "xp-details",
-    label: "XP Details",
+    id: 'xp-details',
+    label: 'XP Details',
     component: XPDetailsContent,
-    variant: "danger",
+    variant: 'danger',
     loading: false,
   },
   {
-    id: "map-details",
-    label: "Map Details",
+    id: 'map-details',
+    label: 'Map Details',
     component: MapDetailsContent,
-    variant: "primaryOutlined",
+    variant: 'primaryOutlined',
     loading: false,
   },
   {
-    id: "caravan",
-    label: "Caravan",
+    id: 'caravan',
+    label: 'Caravan',
     component: CaravanContent,
-    variant: "primary",
+    variant: 'primary',
     loading: false,
   },
-];
+]
 
 // Convert options arrays into the format expected by SelectField
 const difficultyOptionsRef = ref(
   difficultyOptions.map((value) => ({ value, label: value }))
-);
+)
 const terrainOptionsRef = ref(
   terrainOptions.map((value) => ({ value, label: value }))
-);
+)
 const timeOfDayOptionsRef = ref(
   timeOfDayOptions.map((value) => ({ value, label: value }))
-);
+)
 const weatherOptionsRef = ref(
   weatherOptions.map((value) => ({ value, label: value }))
-);
+)
 const objectivesOptionsRef = ref(
   objectivesOptions.map((value) => ({ value, label: value }))
-);
+)
 
 // Functions to handle adding/removing items
 const addItem = (location) => {
-  encounterData.mapLocations[location].push("");
-};
+  encounterData.mapLocations[location].push('')
+}
 
 const removeItem = (location, index) => {
-  encounterData.mapLocations[location].splice(index, 1);
-};
+  encounterData.mapLocations[location].splice(index, 1)
+}
 
 watch(
   () => props.encounter,
   (newEncounter) => {
-    Object.assign(encounterData, newEncounter);
+    Object.assign(encounterData, newEncounter)
 
     // Ensure npcTypes and other fields are initialized correctly
     if (!Array.isArray(encounterData.npcTypes)) {
-      encounterData.npcTypes = ["", "", "", ""]; // Ensure 4 empty NPC types
+      encounterData.npcTypes = ['', '', '', ''] // Ensure 4 empty NPC types
     }
 
     if (!encounterData.mapLocations) {
-      encounterData.mapLocations = generateMapLocationsWithItems() || {};
+      encounterData.mapLocations = generateMapLocationsWithItems() || {}
     }
   },
   { immediate: true }
-);
+)
 
+// Handle updates from Tabs component
+const updateEncounterData = (updatedData) => {
+  Object.assign(encounterData, updatedData)
+}
+
+// Close modal
 const closeModal = () => {
-  emit("close");
-};
+  emit('close')
+}
 
+// Handle form submission
 const handleSubmit = async () => {
-  isSubmitting.value = true;
+  isSubmitting.value = true
   try {
-    await emit("update", encounterData);
+    await emit('update', encounterData)
   } catch (error) {
-    console.error("Update failed:", error);
+    console.error('Update failed:', error)
   } finally {
-    isSubmitting.value = false;
-    closeModal();
+    isSubmitting.value = false
+    closeModal()
   }
-};
+}
 
+// Handle delete action
 const handleDelete = async () => {
-  isDeleting.value = true;
+  isDeleting.value = true
   try {
-    await emit("delete", encounterData.id);
+    await emit('delete', encounterData.id)
   } catch (error) {
-    console.error("Delete failed:", error);
+    console.error('Delete failed:', error)
   } finally {
-    isDeleting.value = false;
-    closeModal();
+    isDeleting.value = false
+    closeModal()
   }
-};
+}
 </script>
+
+<style scoped>
+/* Add your styles here */
+</style>

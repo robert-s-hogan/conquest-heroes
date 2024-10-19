@@ -8,12 +8,12 @@
 </template>
 
 <script setup>
-import Link from "@/components/Atoms/Link/Link.vue";
+import Link from '@/components/Atoms/BaseLink/BaseLink.vue'
 
 const props = defineProps({
   isAuthenticated: {
     type: Boolean,
     default: false,
   },
-});
+})
 </script>

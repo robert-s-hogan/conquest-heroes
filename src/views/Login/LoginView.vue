@@ -71,33 +71,33 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
-import { useRouter } from "vue-router";
-import { auth } from "@/firebase/firebaseConfig";
-import { login, loginWithGoogle } from "@/services/Auth/authServices";
-import Button from "@/components/Atoms/Button/Button.vue";
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { auth } from '@/firebase/firebaseConfig'
+import { login, loginWithGoogle } from '@/services/Auth/authServices'
+import Button from '@/components/Atoms/BaseButton/BaseButton.vue'
 
-const router = useRouter();
-const username = ref("");
-const password = ref("");
+const router = useRouter()
+const username = ref('')
+const password = ref('')
 
 // Function to handle login with email and password
 const handleSubmit = async () => {
   try {
-    await login(auth, username.value, password.value);
-    router.push("/dashboard"); // Redirect to dashboard on successful login
+    await login(auth, username.value, password.value)
+    router.push('/dashboard') // Redirect to dashboard on successful login
   } catch (error) {
-    console.error("Login error:", error.message);
+    console.error('Login error:', error.message)
   }
-};
+}
 
 // Function to handle Google login
 const handleGoogleLogin = async () => {
   try {
-    await loginWithGoogle(auth);
-    router.push("/dashboard"); // Redirect to dashboard on successful Google login
+    await loginWithGoogle(auth)
+    router.push('/dashboard') // Redirect to dashboard on successful Google login
   } catch (error) {
-    console.error("Google login error:", error.message);
+    console.error('Google login error:', error.message)
   }
-};
+}
 </script>

@@ -23,38 +23,38 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
-import Button from "@/components/Atoms/Button/Button.vue";
-import Navigation from "@/components/Molecules/Navigation/Navigation.vue";
-import AuthButton from "@/components/Molecules/AuthButton/AuthButton.vue";
-import Link from "@/components/Atoms/Link/Link.vue";
-import { onAuthStateChanged, signOut } from "firebase/auth";
-import { auth } from "@/firebase/firebaseConfig";
-import { useRouter } from "vue-router";
+import { ref } from 'vue'
+import Button from '@/components/Atoms/BaseButton/BaseButton.vue'
+import Navigation from '@/components/Molecules/BaseNavigation/BaseNavigation.vue'
+import AuthButton from '@/components/Molecules/AuthButton/AuthButton.vue'
+import Link from '@/components/Atoms/BaseLink/BaseLink.vue'
+import { onAuthStateChanged, signOut } from 'firebase/auth'
+import { auth } from '@/firebase/firebaseConfig'
+import { useRouter } from 'vue-router'
 
-const router = useRouter();
-const isAuthenticated = ref(false);
+const router = useRouter()
+const isAuthenticated = ref(false)
 
 // Listen to auth state changes to update the isAuthenticated status
 onAuthStateChanged(auth, (user) => {
-  isAuthenticated.value = !!user;
+  isAuthenticated.value = !!user
   if (!user) {
     // Redirect to /login if the user is not authenticated
-    router.push("/login");
+    router.push('/login')
   }
-});
+})
 
 const handleLogin = () => {
-  router.push("/login");
-};
+  router.push('/login')
+}
 
 const handleLogout = async () => {
   try {
-    await signOut(auth);
-    console.log("User logged out successfully");
-    router.push("/login");
+    await signOut(auth)
+    console.log('User logged out successfully')
+    router.push('/login')
   } catch (error) {
-    console.error("Logout failed:", error.message);
+    console.error('Logout failed:', error.message)
   }
-};
+}
 </script>

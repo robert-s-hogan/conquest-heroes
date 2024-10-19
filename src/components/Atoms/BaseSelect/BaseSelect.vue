@@ -35,13 +35,13 @@ const props = defineProps({
   },
   placeholder: {
     type: String,
-    default: "Please select an option",
+    default: 'Please select an option',
   },
   id: {
     type: String,
     default: () => `select-${Math.random().toString(36).substr(2, 9)}`,
   },
-});
+})
 
-const emit = defineEmits(["update:modelValue"]);
+const emit = defineEmits(['update:modelValue'])
 </script>

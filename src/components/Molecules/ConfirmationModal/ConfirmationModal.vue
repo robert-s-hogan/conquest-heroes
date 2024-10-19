@@ -15,23 +15,23 @@
 </template>
 
 <script setup>
-import Button from "@/components/Atoms/Button/Button.vue";
-import Heading from "@/components/Atoms/Heading/Heading.vue";
-import Paragraph from "@/components/Atoms/Paragraph/Paragraph.vue";
+import Button from '@/components/Atoms/BaseButton/BaseButton.vue'
+import Heading from '@/components/Atoms/BaseHeading/BaseHeading.vue'
+import Paragraph from '@/components/Atoms/BaseParagraph/BaseParagraph.vue'
 
 const props = defineProps({
   isOpen: { type: Boolean, required: true },
-  title: { type: String, default: "Confirm Action" },
+  title: { type: String, default: 'Confirm Action' },
   message: { type: String, required: true },
-});
+})
 
-const emit = defineEmits(["confirm", "cancel"]);
+const emit = defineEmits(['confirm', 'cancel'])
 
 const onConfirm = () => {
-  emit("confirm");
-};
+  emit('confirm')
+}
 
 const onCancel = () => {
-  emit("cancel");
-};
+  emit('cancel')
+}
 </script>

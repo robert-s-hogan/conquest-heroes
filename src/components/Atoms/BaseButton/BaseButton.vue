@@ -33,48 +33,48 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { computed } from 'vue'
 
 const props = defineProps({
   variant: {
     type: String,
-    default: "primary",
+    default: 'primary',
   },
   loading: {
     type: Boolean,
     default: false,
   },
-});
+})
 
-const emit = defineEmits(["click"]);
+const emit = defineEmits(['click'])
 
 const handleClick = () => {
   if (!props.loading) {
-    emit("click"); // Emit click event only if not loading
+    emit('click') // Emit click event only if not loading
   }
-};
+}
 
 const buttonClasses = computed(() => {
   const baseClasses =
-    "px-3 py-2 transition duration-300 ease-in-out flex items-center justify-center rounded";
+    'px-3 py-2 transition duration-300 ease-in-out flex items-center justify-center rounded'
 
   const variantClasses = (() => {
     switch (props.variant) {
-      case "primary":
-        return "bg-blue-500 text-white hover:bg-blue-700";
-      case "secondary":
-        return "bg-gray-500 text-white hover:bg-gray-700";
-      case "primaryOutlined":
-        return "border text-blue-500 hover:bg-blue-100";
-      case "danger":
-        return "bg-red-500 text-white hover:bg-red-700";
+      case 'primary':
+        return 'bg-blue-500 text-white hover:bg-blue-700'
+      case 'secondary':
+        return 'bg-gray-500 text-white hover:bg-gray-700'
+      case 'primaryOutlined':
+        return 'border text-blue-500 hover:bg-blue-100'
+      case 'danger':
+        return 'bg-red-500 text-white hover:bg-red-700'
       default:
-        return "";
+        return ''
     }
-  })();
+  })()
 
-  const loadingClasses = props.loading ? "opacity-70 cursor-not-allowed" : ""; // Apply opacity and disable cursor when loading
+  const loadingClasses = props.loading ? 'opacity-70 cursor-not-allowed' : '' // Apply opacity and disable cursor when loading
 
-  return `${baseClasses} ${variantClasses} ${loadingClasses}`;
-});
+  return `${baseClasses} ${variantClasses} ${loadingClasses}`
+})
 </script>

@@ -45,26 +45,26 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
-import { auth } from "@/firebase/firebaseConfig";
-import { sendPasswordResetEmail } from "firebase/auth";
-import Button from "@/components/Atoms/Button/Button.vue";
+import { ref } from 'vue'
+import { auth } from '@/firebase/firebaseConfig'
+import { sendPasswordResetEmail } from 'firebase/auth'
+import Button from '@/components/Atoms/BaseButton/BaseButton.vue'
 
-const email = ref("");
-const message = ref("");
-const error = ref("");
+const email = ref('')
+const message = ref('')
+const error = ref('')
 
 // Function to handle password reset
 const handlePasswordReset = async () => {
-  message.value = ""; // Clear any previous messages
-  error.value = ""; // Clear any previous errors
+  message.value = '' // Clear any previous messages
+  error.value = '' // Clear any previous errors
 
   try {
-    await sendPasswordResetEmail(auth, email.value);
-    message.value = "Password reset link sent! Please check your email.";
+    await sendPasswordResetEmail(auth, email.value)
+    message.value = 'Password reset link sent! Please check your email.'
   } catch (err) {
-    console.error("Error sending password reset email:", err.message);
-    error.value = "Failed to send password reset email. Please try again.";
+    console.error('Error sending password reset email:', err.message)
+    error.value = 'Failed to send password reset email. Please try again.'
   }
-};
+}
 </script>

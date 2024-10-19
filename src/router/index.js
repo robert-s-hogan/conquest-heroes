@@ -1,63 +1,66 @@
-import { createRouter, createWebHistory } from "vue-router";
-import Home from "@/views/Home/Home.vue";
-import Login from "@/views/Login/Login.vue";
-import Dashboard from "@/views/Dashboard/Dashboard.vue";
-import AuthLayout from "@/layouts/AuthLayout.vue";
-import DefaultLayout from "@/layouts/DefaultLayout.vue";
-import { auth } from "@/firebase/firebaseConfig";
+import { createRouter, createWebHistory } from 'vue-router'
+import HomeView from '@/views/Home/HomeView.vue'
+import Login from '@/views/Login/LoginView.vue'
+import Dashboard from '@/views/Dashboard/DashboardView.vue'
+import AuthLayout from '@/layouts/AuthLayout.vue'
+import DefaultLayout from '@/layouts/DefaultLayout.vue'
+import { auth } from '@/firebase/firebaseConfig'
 
 const routes = [
   {
-    path: "/",
+    path: '/',
     component: DefaultLayout,
-    children: [{ path: "", component: Home }],
+    children: [{ path: '', component: HomeView }],
   },
   {
-    path: "/login",
+    path: '/login',
     component: DefaultLayout,
-    children: [{ path: "", component: Login }],
+    children: [{ path: '', component: Login }],
   },
 
   {
-    path: "/register",
-    component: DefaultLayout,
-    children: [
-      { path: "", component: () => import("@/views/Register/Register.vue") },
-    ],
-  },
-  {
-    path: "/reset-password",
+    path: '/register',
     component: DefaultLayout,
     children: [
       {
-        path: "",
-        component: () => import("@/views/ResetPassword/ResetPassword.vue"),
+        path: '',
+        component: () => import('@/views/Register/RegisterView.vue'),
       },
     ],
   },
   {
-    path: "/dashboard",
+    path: '/reset-password',
+    component: DefaultLayout,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/ResetPassword/ResetPasswordView.vue'),
+      },
+    ],
+  },
+  {
+    path: '/dashboard',
     component: AuthLayout,
     meta: { requiresAuth: true },
-    children: [{ path: "", component: Dashboard }],
+    children: [{ path: '', component: Dashboard }],
   },
-];
+]
 
 const router = createRouter({
   history: createWebHistory(),
   routes,
-});
+})
 
 // Navigation Guard
 router.beforeEach((to, from, next) => {
-  const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
-  const currentUser = auth.currentUser;
+  const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
+  const currentUser = auth.currentUser
 
   if (requiresAuth && !currentUser) {
-    next("/");
+    next('/')
   } else {
-    next();
+    next()
   }
-});
+})
 
-export default router;
+export default router

@@ -14,11 +14,11 @@
 </template>
 
 <script setup>
-import LabelText from "@/components/Atoms/LabelText/LabelText.vue";
-import DataRow from "@/components/Molecules/DataRow/DataRow.vue";
+import LabelText from '@/components/Atoms/BaseLabel/BaseLabel.vue'
+import DataRow from '@/components/Molecules/DataRow/DataRow.vue'
 
 const props = defineProps({
   title: String,
   items: Array, // { label: String, value: [String, Number, Boolean] }[]
-});
+})
 </script>

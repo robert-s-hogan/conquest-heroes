@@ -2,22 +2,22 @@
 <template>
   <div>
     <SelectField
-      v-model="encounterData.mapTerrainType"
+      v-model="localEncounterData.mapTerrainType"
       label="Map Terrain Type"
       :options="terrainOptionsRef"
     />
     <SelectField
-      v-model="encounterData.timeOfDay"
+      v-model="localEncounterData.timeOfDay"
       label="Time of Day"
       :options="timeOfDayOptionsRef"
     />
     <SelectField
-      v-model="encounterData.weather"
+      v-model="localEncounterData.weather"
       label="Weather"
       :options="weatherOptionsRef"
     />
     <SelectField
-      v-model="encounterData.objectivesOfEncounter"
+      v-model="localEncounterData.objectivesOfEncounter"
       label="Objectives"
       :options="objectivesOptionsRef"
     />
@@ -25,9 +25,10 @@
 </template>
 
 <script setup>
-import { defineProps } from "vue";
-import SelectField from "@/components/Atoms/SelectField/SelectField.vue";
+import { reactive, watch } from 'vue'
+import SelectField from '@/components/Atoms/BaseSelect/BaseSelect.vue'
 
+// Define props
 const props = defineProps({
   encounterData: {
     type: Object,
@@ -49,5 +50,20 @@ const props = defineProps({
     type: Array,
     required: true,
   },
-});
+})
+
+// Define emits
+const emit = defineEmits(['update:encounterData'])
+
+// Create a reactive local copy of encounterData
+const localEncounterData = reactive({ ...props.encounterData })
+
+// Watch for changes in localEncounterData and emit updates
+watch(
+  () => ({ ...localEncounterData }),
+  (newData) => {
+    emit('update:encounterData', newData)
+  },
+  { deep: true }
+)
 </script>

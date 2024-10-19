@@ -67,39 +67,39 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
-import { useRouter } from "vue-router";
-import { auth } from "@/firebase/firebaseConfig";
-import { register, loginWithGoogle } from "@/services/Auth/authServices";
-import Button from "@/components/Atoms/Button/Button.vue";
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { auth } from '@/firebase/firebaseConfig'
+import { register, loginWithGoogle } from '@/services/Auth/authServices'
+import Button from '@/components/Atoms/BaseButton/BaseButton.vue'
 
-const router = useRouter();
-const email = ref("");
-const password = ref("");
-const error = ref("");
+const router = useRouter()
+const email = ref('')
+const password = ref('')
+const error = ref('')
 
 // Function to handle registration
 const handleRegister = async () => {
-  error.value = ""; // Clear previous errors
+  error.value = '' // Clear previous errors
 
   try {
-    await register(auth, email.value, password.value);
-    router.push("/dashboard"); // Redirect to dashboard on successful registration
+    await register(auth, email.value, password.value)
+    router.push('/dashboard') // Redirect to dashboard on successful registration
   } catch (err) {
-    error.value = err.message; // Update UI with specific error message
+    error.value = err.message // Update UI with specific error message
   }
-};
+}
 
 // Function to handle Google registration
 const handleGoogleRegister = async () => {
-  error.value = ""; // Clear previous errors
+  error.value = '' // Clear previous errors
 
   try {
-    const user = await loginWithGoogle(auth);
-    console.log("User registered with Google:", user);
-    router.push("/dashboard"); // Redirect to dashboard on successful registration
+    const user = await loginWithGoogle(auth)
+    console.log('User registered with Google:', user)
+    router.push('/dashboard') // Redirect to dashboard on successful registration
   } catch (err) {
-    error.value = err.message; // Update UI with specific error message
+    error.value = err.message // Update UI with specific error message
   }
-};
+}
 </script>
