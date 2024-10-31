@@ -1,25 +1,25 @@
-<!-- src/components/atoms/MapDetailsContent.vue -->
+<!-- XPDetailsContent.vue -->
 <template>
   <div>
     <SelectField
       v-model="localEncounterData.mapTerrainType"
       label="Map Terrain Type"
-      :options="terrainOptionsRef"
+      :options="terrainOptions"
     />
     <SelectField
       v-model="localEncounterData.timeOfDay"
       label="Time of Day"
-      :options="timeOfDayOptionsRef"
+      :options="timeOfDayOptions"
     />
     <SelectField
       v-model="localEncounterData.weather"
       label="Weather"
-      :options="weatherOptionsRef"
+      :options="weatherOptions"
     />
     <SelectField
       v-model="localEncounterData.objectivesOfEncounter"
       label="Objectives"
-      :options="objectivesOptionsRef"
+      :options="objectivesOptions"
     />
   </div>
 </template>
@@ -34,35 +34,53 @@ const props = defineProps({
     type: Object,
     required: true,
   },
-  terrainOptionsRef: {
+  terrainOptions: {
     type: Array,
     required: true,
   },
-  timeOfDayOptionsRef: {
+  timeOfDayOptions: {
     type: Array,
     required: true,
   },
-  weatherOptionsRef: {
+  weatherOptions: {
     type: Array,
     required: true,
   },
-  objectivesOptionsRef: {
+  objectivesOptions: {
     type: Array,
     required: true,
   },
 })
 
 // Define emits
-const emit = defineEmits(['update:encounterData'])
+const emit = defineEmits(['update:encounterDetails'])
 
-// Create a reactive local copy of encounterData
-const localEncounterData = reactive({ ...props.encounterData })
+// Create a local reactive object for only the relevant properties
+const localEncounterDetails = reactive({
+  mapTerrainType: props.encounterData.mapTerrainType,
+  timeOfDay: props.encounterData.timeOfDay,
+  weather: props.encounterData.weather,
+  objectivesOfEncounter: props.encounterData.objectivesOfEncounter,
+})
+// Watch for changes and emit updates
 
-// Watch for changes in localEncounterData and emit updates
 watch(
-  () => ({ ...localEncounterData }),
+  () => props.encounterData,
   (newData) => {
-    emit('update:encounterData', newData)
+    Object.assign(localEncounterDetails, {
+      mapTerrainType: newData.mapTerrainType,
+      timeOfDay: newData.timeOfDay,
+      weather: newData.weather,
+      objectivesOfEncounter: newData.objectivesOfEncounter,
+    })
+  },
+  { deep: true }
+)
+
+watch(
+  () => localEncounterDetails,
+  (newDetails) => {
+    emit('update:encounterDetails', { ...newDetails })
   },
   { deep: true }
 )

@@ -7,27 +7,27 @@
     @close="closeModal"
   >
     <form @submit.prevent="handleSubmit">
-      <div class="grid grid-cols-1 md:grid-cols-2">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Tabs
           :tabs="tabs"
           :encounterData="encounterData"
-          :difficultyOptionsRef="difficultyOptionsRef"
-          :terrainOptionsRef="terrainOptionsRef"
-          :timeOfDayOptionsRef="timeOfDayOptionsRef"
-          :weatherOptionsRef="weatherOptionsRef"
-          :objectivesOptionsRef="objectivesOptionsRef"
-          @update:encounterData="updateEncounterData"
+          @update:mapLocations="
+            (newMapLocations) => (encounterData.mapLocations = newMapLocations)
+          "
+          @update:encounterDetails="
+            (newDetails) => Object.assign(encounterData, newDetails)
+          "
         />
 
-        <div>
+        <div className="md:col-span-2">
           <!-- NPC Types -->
           <div class="mt-4">
             <label class="block text-gray-700">NPC Types:</label>
-            <!-- Ensure npcTypes exists and is an array before rendering -->
             <div
               v-if="
                 encounterData.npcTypes && Array.isArray(encounterData.npcTypes)
               "
+              class="space-y-2"
             >
               <div
                 v-for="(npcType, index) in encounterData.npcTypes"
@@ -46,46 +46,16 @@
           <!-- Map Locations -->
           <div class="mt-4">
             <label class="block text-gray-700">Map Locations:</label>
-            <div
-              v-for="(items, location) in encounterData.mapLocations || {}"
-              :key="location"
-              class="mt-2"
-            >
-              <h4 class="font-semibold">
-                {{ location.charAt(0).toUpperCase() + location.slice(1) }}
-              </h4>
-              <div
-                v-for="(item, index) in items"
-                :key="index"
-                class="flex items-center"
-              >
-                <input
-                  v-model="encounterData.mapLocations[location][index]"
-                  type="text"
-                  placeholder="Item Description"
-                  class="mt-1 block w-full border border-gray-300 rounded-md p-2"
-                />
-                <button
-                  type="button"
-                  class="ml-2 text-red-500"
-                  @click="removeItem(location, index)"
-                >
-                  Remove
-                </button>
-              </div>
-              <button
-                type="button"
-                class="mt-2 text-blue-500"
-                @click="addItem(location)"
-              >
-                Add Item
-              </button>
-            </div>
+            <MapDetailsContent
+              :mapLocations="encounterData.mapLocations"
+              :possibleItemsPerLocation="possibleItemsPerLocation"
+              @update:encounterData="updateEncounterData"
+            />
           </div>
         </div>
       </div>
 
-      <div class="flex justify-between mt-4">
+      <div class="flex justify-between mt-6">
         <Button
           type="button"
           variant="danger"
@@ -133,9 +103,72 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'update', 'delete'])
 
+// Create a reactive local copy of encounterData
 const encounterData = reactive({ ...props.encounter })
 const isSubmitting = ref(false)
 const isDeleting = ref(false)
+
+// Convert options arrays into the format expected by SelectField
+const difficultyOptionsUnwrapped = difficultyOptions.map((value) => ({
+  value,
+  label: value,
+}))
+
+const terrainOptionsUnwrapped = terrainOptions.map((value) => ({
+  value,
+  label: value,
+}))
+const timeOfDayOptionsUnwrapped = timeOfDayOptions.map((value) => ({
+  value,
+  label: value,
+}))
+const weatherOptionsUnwrapped = weatherOptions.map((value) => ({
+  value,
+  label: value,
+}))
+const objectivesOptionsUnwrapped = objectivesOptions.map((value) => ({
+  value,
+  label: value,
+}))
+
+// Define possible items per location (should match those in encounterUtils.js)
+const possibleItemsPerLocation = {
+  MAP: [
+    'Trap - Grease Trap',
+    'Beast (Ox)',
+    "Cartographer's Station (empty)",
+    'Hidden Pitfall',
+    'Magical Barrier',
+  ],
+  'Suspended Cage': [
+    'Ladder, metal, 25ft telescopic',
+    'Rope Ladder, wooden',
+    'Net Trap',
+  ],
+  'Carnival Tent': ['Backpack (empty)', 'Storage Chest', 'Magic Mirror'],
+  'OPPOSITION START': [
+    'Hot Air Balloon, tethered, unoccupied',
+    'Ambush Point',
+    'Scout Tower',
+  ],
+  Den: ['Fountain (holy water)', 'Den (empty)', 'Alchemy Lab'],
+  'Cannon, gunpowder loaded': [
+    'Levitating Stones, orbiting',
+    'Cannon Ball Rack',
+    'Gunpowder Keg',
+  ],
+  Construct: ['Construct, large', 'Guard Construct', 'Repair Station'],
+  'Time-Worn Reliquary, sacred contents': [
+    'Ancient Tome',
+    'Sacred Relic',
+    'Mystic Artifact',
+  ],
+  'PLAYER START': [
+    'Levitating Stones, orbiting',
+    'Construct, large',
+    'Player Beacon',
+  ],
+}
 
 // Tabs Configuration
 const tabs = [
@@ -143,6 +176,13 @@ const tabs = [
     id: 'xp-details',
     label: 'XP Details',
     component: XPDetailsContent,
+    props: {
+      difficultyOptions: difficultyOptionsUnwrapped,
+      terrainOptions: terrainOptionsUnwrapped,
+      timeOfDayOptions: timeOfDayOptionsUnwrapped,
+      weatherOptions: weatherOptionsUnwrapped,
+      objectivesOptions: objectivesOptionsUnwrapped,
+    },
     variant: 'danger',
     loading: false,
   },
@@ -150,6 +190,10 @@ const tabs = [
     id: 'map-details',
     label: 'Map Details',
     component: MapDetailsContent,
+    props: {
+      mapLocations: encounterData.mapLocations,
+      possibleItemsPerLocation: possibleItemsPerLocation,
+    },
     variant: 'primaryOutlined',
     loading: false,
   },
@@ -157,37 +201,24 @@ const tabs = [
     id: 'caravan',
     label: 'Caravan',
     component: CaravanContent,
+    props: {
+      encounterData,
+      // Pass any necessary props to CaravanContent if needed
+    },
     variant: 'primary',
     loading: false,
   },
 ]
 
-// Convert options arrays into the format expected by SelectField
-const difficultyOptionsRef = ref(
-  difficultyOptions.map((value) => ({ value, label: value }))
-)
-const terrainOptionsRef = ref(
-  terrainOptions.map((value) => ({ value, label: value }))
-)
-const timeOfDayOptionsRef = ref(
-  timeOfDayOptions.map((value) => ({ value, label: value }))
-)
-const weatherOptionsRef = ref(
-  weatherOptions.map((value) => ({ value, label: value }))
-)
-const objectivesOptionsRef = ref(
-  objectivesOptions.map((value) => ({ value, label: value }))
-)
-
-// Functions to handle adding/removing items
-const addItem = (location) => {
-  encounterData.mapLocations[location].push('')
+// Initialize mapLocations if empty
+if (
+  !encounterData.mapLocations ||
+  Object.keys(encounterData.mapLocations).length === 0
+) {
+  encounterData.mapLocations = generateMapLocationsWithItems()
 }
 
-const removeItem = (location, index) => {
-  encounterData.mapLocations[location].splice(index, 1)
-}
-
+// Watch for changes in props.encounter and update encounterData accordingly
 watch(
   () => props.encounter,
   (newEncounter) => {
@@ -198,17 +229,15 @@ watch(
       encounterData.npcTypes = ['', '', '', ''] // Ensure 4 empty NPC types
     }
 
-    if (!encounterData.mapLocations) {
+    if (
+      !encounterData.mapLocations ||
+      Object.keys(encounterData.mapLocations).length === 0
+    ) {
       encounterData.mapLocations = generateMapLocationsWithItems() || {}
     }
   },
   { immediate: true }
 )
-
-// Handle updates from Tabs component
-const updateEncounterData = (updatedData) => {
-  Object.assign(encounterData, updatedData)
-}
 
 // Close modal
 const closeModal = () => {
@@ -219,9 +248,10 @@ const closeModal = () => {
 const handleSubmit = async () => {
   isSubmitting.value = true
   try {
-    await emit('update', encounterData)
+    await emit('update', { ...encounterData })
   } catch (error) {
     console.error('Update failed:', error)
+    // Optionally, display an error message to the user
   } finally {
     isSubmitting.value = false
     closeModal()
@@ -232,16 +262,13 @@ const handleSubmit = async () => {
 const handleDelete = async () => {
   isDeleting.value = true
   try {
-    await emit('delete', encounterData.id)
+    await emit('delete', encounterData.encounterNumber)
   } catch (error) {
     console.error('Delete failed:', error)
+    // Optionally, display an error message to the user
   } finally {
     isDeleting.value = false
     closeModal()
   }
 }
 </script>
-
-<style scoped>
-/* Add your styles here */
-</style>

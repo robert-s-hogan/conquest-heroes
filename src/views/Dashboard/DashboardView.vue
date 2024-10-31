@@ -4,14 +4,7 @@
     <div class="flex flex-1">
       <aside class="w-64 bg-white p-4 shadow-md">
         <nav>
-          <!-- <ul>
-            <li class="mb-4">
-              <a href="#" class="text-blue-500 hover:underline">Campaigns</a>
-            </li>
-            <li class="mb-4">
-              <a href="#" class="text-blue-500 hover:underline">Encounters</a>
-            </li>
-          </ul> -->
+          <!-- Navigation items (if needed) -->
         </nav>
       </aside>
       <main class="flex-1 p-4">
@@ -75,7 +68,7 @@
           <!-- List of Encounters -->
           <div
             v-if="encounters && encounters.length > 0"
-            class="border border-2 border-black"
+            class="border border-2 border-black rounded"
           >
             <EncounterItem
               v-for="encounter in encounters"
@@ -85,6 +78,7 @@
               @delete-encounter="handleDeleteEncounter"
             />
           </div>
+          <div v-else class="text-gray-500">No encounters available.</div>
         </div>
 
         <!-- Modals -->
@@ -111,6 +105,14 @@
           :campaign="currentCampaign"
           @close="isEditModalOpen = false"
           @update="handleEditCampaign"
+        />
+
+        <!-- Add Encounter Modal (if needed) -->
+        <AddEncounterModal
+          v-if="isEncounterModalOpen"
+          :campaignId="currentCampaign.id"
+          @close="isEncounterModalOpen = false"
+          @add="handleAddEncounter"
         />
       </main>
     </div>
@@ -146,13 +148,11 @@ const {
   handleDeleteCampaign,
 } = useCampaignData()
 
-// Encounter-related references
-const isEncounterModalOpen = ref(false)
-const isDeletingEncounter = ref(false)
+// Provide currentCampaign to child components if needed
+provide('currentCampaign', currentCampaign)
 
 // Define campaignIdRef as a computed property
 const campaignIdRef = computed(() => currentCampaign.value?.id)
-provide('currentCampaign', currentCampaign)
 
 // Use useEncounter with campaignIdRef
 const {
@@ -163,20 +163,21 @@ const {
   updateEncounter,
 } = useEncounter(campaignIdRef)
 
-// Fetch encounters when campaignId changes
+// Watch for changes in campaignIdRef to fetch encounters
 watch(
   campaignIdRef,
   (newCampaignId) => {
     if (newCampaignId) {
       fetchEncounters()
     } else {
-      // Reset encounters
+      // Reset encounters if no campaign is selected
       encounters.value = []
     }
   },
   { immediate: true }
 )
 
+// Handle adding a new encounter
 const handleAddEncounter = async () => {
   if (currentCampaign.value?.id) {
     console.log('Encounters before generating:', encounters.value)
@@ -189,7 +190,7 @@ const handleAddEncounter = async () => {
     // Debugging encounter data
     console.log('Generated encounter data:', encounterData)
 
-    // Check if the encounterData is valid
+    // Validate encounter data
     if (!encounterData.players || encounterData.players.length === 0) {
       console.error(
         'Encounter data has missing or undefined players',
@@ -205,6 +206,7 @@ const handleAddEncounter = async () => {
   }
 }
 
+// Handle updating an encounter
 const handleUpdateEncounter = async (updatedEncounter) => {
   if (currentCampaign.value?.id) {
     await updateEncounter(updatedEncounter)
@@ -212,18 +214,23 @@ const handleUpdateEncounter = async (updatedEncounter) => {
   }
 }
 
+// Handle deleting an encounter
 const handleDeleteEncounter = async (encounterId) => {
   if (currentCampaign.value?.id) {
     await deleteEncounter(encounterId)
   }
 }
 
+// Delete Confirmation Modal
 const isDeleteConfirmModalOpen = ref(false)
 
 const confirmDeleteCampaign = async () => {
   isDeleteConfirmModalOpen.value = false
   await handleDeleteCampaign()
 }
+
+// Encounter Modal State (if using AddEncounterModal)
+const isEncounterModalOpen = ref(false)
 
 // Load campaigns on mount
 onMounted(loadCampaigns)
