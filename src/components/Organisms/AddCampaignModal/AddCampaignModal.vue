@@ -1,4 +1,4 @@
-<!-- AddCampaignModal.vue -->
+<!-- AddCampaignModal.vue (After) -->
 <template>
   <BaseModal :isOpen="isOpen" title="Add New Campaign" @close="closeModal">
     <form @submit.prevent="handleSubmit">
@@ -18,6 +18,7 @@
         type="number"
         placeholder="0"
       />
+
       <Button :loading="isSubmitting" variant="primary" class="w-full mt-4">
         Add Campaign
       </Button>
@@ -31,33 +32,37 @@ import InputField from '@/components/Atoms/BaseInput/BaseInput.vue'
 import BaseModal from '@/components/Atoms/BaseModal/BaseModal.vue'
 import Button from '@/components/Atoms/BaseButton/BaseButton.vue'
 
+const props = defineProps({
+  isOpen: { type: Boolean, default: false },
+})
+
 const emit = defineEmits(['close', 'submit'])
 
-const isOpen = ref(false)
-const isSubmitting = ref(false)
 const name = ref('')
 const description = ref('')
-const startXp = ref(0) // Renamed to startXp
+const startXp = ref(0)
+const isSubmitting = ref(false)
 
-const closeModal = () => {
+function handleSubmit() {
+  isSubmitting.value = true
+  // Emit the form payload
+  emit('submit', {
+    name: name.value,
+    description: description.value,
+    startXp: startXp.value,
+  })
+  isSubmitting.value = false
+  closeModal()
+}
+
+function closeModal() {
   emit('close')
   resetForm()
 }
 
-const resetForm = () => {
+function resetForm() {
   name.value = ''
   description.value = ''
   startXp.value = 0
-}
-
-const handleSubmit = () => {
-  isSubmitting.value = true
-  emit('submit', {
-    name: name.value,
-    description: description.value,
-    startXp: startXp.value, // Changed to startXp
-  })
-  isSubmitting.value = false
-  closeModal()
 }
 </script>

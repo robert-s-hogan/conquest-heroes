@@ -1,37 +1,33 @@
+<!-- ConfirmationModal.vue (After) -->
 <template>
-  <div
-    v-if="isOpen"
-    class="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-75"
-  >
-    <div class="bg-white p-6 rounded shadow-md w-96">
-      <Heading :title="title" level="2" class="mb-4" />
-      <Paragraph :text="message" class="mb-6" />
-      <div class="flex justify-end space-x-4">
-        <Button variant="secondary" @click="onCancel">Cancel</Button>
-        <Button variant="danger" @click="onConfirm">Confirm</Button>
-      </div>
-    </div>
-  </div>
+  <BaseModal :isOpen="isOpen" :title="title" @close="onCancel">
+    <!-- Modal BODY -->
+    <Paragraph :text="message" class="mb-4" />
+
+    <!-- Modal FOOTER (slot="footer") -->
+    <template #footer>
+      <Button variant="secondary" @click="onCancel">Cancel</Button>
+      <Button variant="danger" @click="onConfirm">Confirm</Button>
+    </template>
+  </BaseModal>
 </template>
 
 <script setup>
-import Button from '@/components/Atoms/BaseButton/BaseButton.vue'
-import Heading from '@/components/Atoms/BaseHeading/BaseHeading.vue'
+import BaseModal from '@/components/Atoms/BaseModal/BaseModal.vue'
 import Paragraph from '@/components/Atoms/BaseParagraph/BaseParagraph.vue'
+import Button from '@/components/Atoms/BaseButton/BaseButton.vue'
 
 const props = defineProps({
   isOpen: { type: Boolean, required: true },
   title: { type: String, default: 'Confirm Action' },
   message: { type: String, required: true },
 })
-
 const emit = defineEmits(['confirm', 'cancel'])
 
-const onConfirm = () => {
+function onConfirm() {
   emit('confirm')
 }
-
-const onCancel = () => {
+function onCancel() {
   emit('cancel')
 }
 </script>
