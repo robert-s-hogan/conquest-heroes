@@ -28,6 +28,7 @@ export default defineConfig({
       '@/firebase': path.resolve(__dirname, 'src/firebase'),
       '@/layouts': path.resolve(__dirname, 'src/layouts'),
       '@/services': path.resolve(__dirname, 'src/services'),
+      '@/stores': path.resolve(__dirname, 'src/store'),
       '@/utils': path.resolve(__dirname, 'src/utils'),
       '@/views': path.resolve(__dirname, 'src/views'),
     },

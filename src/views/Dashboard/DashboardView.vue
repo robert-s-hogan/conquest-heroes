@@ -1,4 +1,3 @@
-<!-- Dashboard.vue -->
 <template>
   <div class="min-h-screen bg-gray-100 flex flex-col">
     <div class="flex flex-1">
@@ -37,7 +36,7 @@
                 v-if="currentCampaign"
                 variant="secondary"
                 @click="isDeleteConfirmModalOpen = true"
-                :loading="isDeleting"
+                :loading="campaignLoading"
               >
                 Delete Campaign
               </Button>
@@ -51,13 +50,13 @@
           />
         </div>
 
-        <!-- Encounter Section -->
+        <!-- Encounter Section 
         <div v-if="currentCampaign" class="mb-6">
           <div class="flex items-center justify-between mb-4">
             <Heading title="Encounters" level="2" />
             <div>
               <button
-                @click="handleAddEncounter"
+                @click="isEncounterModalOpen = true"
                 class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
               >
                 Generate Encounter
@@ -65,9 +64,9 @@
             </div>
           </div>
 
-          <!-- List of Encounters -->
+          List of Encounters
           <div
-            v-if="encounters && encounters.length > 0"
+            v-if="encounters.length > 0"
             class="border border-2 border-black rounded"
           >
             <EncounterItem
@@ -80,6 +79,8 @@
           </div>
           <div v-else class="text-gray-500">No encounters available.</div>
         </div>
+
+      -->
 
         <!-- Modals -->
 
@@ -107,7 +108,7 @@
           @update="handleEditCampaign"
         />
 
-        <!-- Add Encounter Modal (if needed) -->
+        <!-- Add Encounter Modal -->
         <AddEncounterModal
           v-if="isEncounterModalOpen"
           :campaignId="currentCampaign.id"
@@ -120,7 +121,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch, provide } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useCampaignStore } from '../../store/campaignStore'
+import { useEncounterStore } from '../../store/encounterStore'
 
 import Button from '@/components/Atoms/BaseButton/BaseButton.vue'
 import Heading from '@/components/Atoms/BaseHeading/BaseHeading.vue'
@@ -131,107 +135,123 @@ import AddEncounterModal from '@/components/Organisms/AddEncounterModal/AddEncou
 import ConfirmationModal from '@/components/Molecules/ConfirmationModal/ConfirmationModal.vue'
 import EditCampaignModal from '@/components/Organisms/EditCampaignModal/EditCampaignModal.vue'
 
-import { useCampaignData } from '@/composables/Campaign/useCampaignData'
-import { useEncounter } from '@/composables/Encounter/useEncounter'
 import { generateEncounterData } from '@/utils/encounterDataGenerator'
 
-// Campaign composable setup
+// Initialize Campaign Store
+const campaignStore = useCampaignStore()
 const {
-  isModalOpen,
-  isEditModalOpen,
-  playerProgression,
+  campaigns,
   currentCampaign,
-  isDeleting,
+  loading: campaignLoading,
+  error: campaignError,
+} = storeToRefs(campaignStore)
+
+const {
   loadCampaigns,
-  handleAddCampaign,
-  handleEditCampaign,
-  handleDeleteCampaign,
-} = useCampaignData()
+  addNewCampaign,
+  editExistingCampaign,
+  deleteExistingCampaign,
+} = campaignStore
 
-// Provide currentCampaign to child components if needed
-provide('currentCampaign', currentCampaign)
+// Initialize Encounter Store
+const encounterStore = useEncounterStore()
 
-// Define campaignIdRef as a computed property
-const campaignIdRef = computed(() => currentCampaign.value?.id)
-
-// Use useEncounter with campaignIdRef
+// ✅ 1) Only destructure reactive state from the store with storeToRefs
 const {
   encounters,
-  fetchEncounters,
-  addEncounter,
-  deleteEncounter,
-  updateEncounter,
-} = useEncounter(campaignIdRef)
+  loading: encounterLoading,
+  error: encounterError,
+} = storeToRefs(encounterStore)
 
-// Watch for changes in campaignIdRef to fetch encounters
-watch(
-  campaignIdRef,
-  (newCampaignId) => {
-    if (newCampaignId) {
-      fetchEncounters()
-    } else {
-      // Reset encounters if no campaign is selected
-      encounters.value = []
-    }
-  },
-  { immediate: true }
-)
+// ✅ 2) Destructure methods normally (no storeToRefs!)
+const {
+  fetchEncountersForCampaign,
+  addNewEncounter,
+  updateExistingEncounter,
+  deleteExistingEncounter,
+  updateRemainingAdventuringDayXP,
+} = encounterStore
 
-// Handle adding a new encounter
-const handleAddEncounter = async () => {
-  if (currentCampaign.value?.id) {
-    console.log('Encounters before generating:', encounters.value)
+// Compute "playerProgression"
+const playerProgression = computed(() => {
+  if (!currentCampaign.value) return []
+  return [
+    { label: 'Group Level', value: currentCampaign.value.groupLevel },
+    {
+      label: 'Adventuring Day XP Limit',
+      value: currentCampaign.value.adventuringDayXpLimit,
+    },
+    {
+      label: 'Death Penalty Multiplier',
+      value: `${currentCampaign.value.deathPenaltyMultiplier}%`,
+    },
+    {
+      label: 'Cumulative Gold Earned',
+      value: currentCampaign.value.cumulativeGoldEarned,
+    },
+    {
+      label: 'Current Group Experience',
+      value: currentCampaign.value.groupExperience,
+    },
+    // etc...
+  ]
+})
 
-    const encounterData = generateEncounterData(
-      currentCampaign.value,
-      encounters.value
-    )
-
-    // Debugging encounter data
-    console.log('Generated encounter data:', encounterData)
-
-    // Validate encounter data
-    if (!encounterData.players || encounterData.players.length === 0) {
-      console.error(
-        'Encounter data has missing or undefined players',
-        encounterData
-      )
-      return // Prevent the call if data is invalid
-    }
-
-    await addEncounter({
-      ...encounterData,
-      campaignId: currentCampaign.value.id,
-    })
-  }
-}
-
-// Handle updating an encounter
-const handleUpdateEncounter = async (updatedEncounter) => {
-  if (currentCampaign.value?.id) {
-    await updateEncounter(updatedEncounter)
-    // No need to refetch encounters; they are reactive
-  }
-}
-
-// Handle deleting an encounter
-const handleDeleteEncounter = async (encounterId) => {
-  if (currentCampaign.value?.id) {
-    await deleteEncounter(encounterId)
-  }
-}
-
-// Delete Confirmation Modal
+// Modal States
+const isModalOpen = ref(false)
+const isEditModalOpen = ref(false)
 const isDeleteConfirmModalOpen = ref(false)
+const isEncounterModalOpen = ref(false)
 
-const confirmDeleteCampaign = async () => {
+// Campaign Handlers
+const handleAddCampaign = async (campaignData) => {
+  await addNewCampaign(campaignData.campaignName, campaignData.startXp)
+  isModalOpen.value = false
+}
+const handleEditCampaign = async (updatedCampaign) => {
+  await editExistingCampaign(updatedCampaign)
+  isEditModalOpen.value = false
+}
+const handleDeleteCampaign = async () => {
+  if (!currentCampaign.value) return
+  await deleteExistingCampaign(currentCampaign.value.id)
   isDeleteConfirmModalOpen.value = false
+}
+const confirmDeleteCampaign = async () => {
   await handleDeleteCampaign()
 }
 
-// Encounter Modal State (if using AddEncounterModal)
-const isEncounterModalOpen = ref(false)
+// Encounter Handlers
+const handleAddEncounter = async (encounterData) => {
+  await addNewEncounter(encounterData)
+  isEncounterModalOpen.value = false
+}
+const handleUpdateEncounter = async (updatedEncounter) => {
+  await updateExistingEncounter(updatedEncounter.id, updatedEncounter)
+}
+const handleDeleteEncounter = async (encounterId) => {
+  await deleteExistingEncounter(encounterId)
+}
 
-// Load campaigns on mount
-onMounted(loadCampaigns)
+// onMounted and watch
+onMounted(async () => {
+  await loadCampaigns()
+  if (currentCampaign.value?.id) {
+    // ✅ call method directly
+    await fetchEncountersForCampaign(currentCampaign.value.id)
+  }
+})
+
+watch(
+  () => currentCampaign.value?.id,
+  async (newCampaignId) => {
+    if (newCampaignId) {
+      // ✅ call method directly
+      await fetchEncountersForCampaign(newCampaignId)
+    } else {
+      // reset local encounter data
+      encounters.value = []
+    }
+  }
+)
 </script>
