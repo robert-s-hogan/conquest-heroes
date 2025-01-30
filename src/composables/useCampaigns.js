@@ -46,20 +46,22 @@ export function useCampaigns() {
   // ===========================
   // 2) Add a New Campaign
   // ===========================
-  async function addNewCampaign(campaignName, startXp) {
+  async function addNewCampaign(campaignName, description, startXp) {
     loading.value = true
     error.value = null
     try {
-      // Calculate derived data if needed
+      // If you do calculations on XP, keep them:
       const xpInfo = calculateXpFields(Number(startXp))
       const derived = calculateDerivedFields({
         campaignName,
+        description, // keep the description
         groupExperience: Number(startXp),
         ...xpInfo,
       })
-      // Build final object
+      // Now include description:
       const newCampaignData = {
         campaignName,
+        description,
         groupExperience: Number(startXp),
         ...xpInfo,
         ...derived,

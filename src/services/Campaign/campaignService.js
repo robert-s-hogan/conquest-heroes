@@ -30,6 +30,11 @@ export async function addCampaign(
   collectionFunc = collection
 ) {
   const campaignsCollection = collectionFunc(db, 'campaigns')
+
+  if (!campaign.campaignName) {
+    throw new Error('Missing required fields')
+  }
+
   const { id, ...data } = campaign
   const docRef = await addDocFunc(campaignsCollection, data)
   return { id: docRef.id, ...data }

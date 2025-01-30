@@ -205,7 +205,11 @@ const isEncounterModalOpen = ref(false)
 
 // Campaign Handlers
 const handleAddCampaign = async (campaignData) => {
-  await addNewCampaign(campaignData.campaignName, campaignData.startXp)
+  await addNewCampaign(
+    campaignData.campaignName,
+    campaignData.description,
+    campaignData.startXp
+  )
   isModalOpen.value = false
 }
 const handleEditCampaign = async (updatedCampaign) => {
