@@ -45,7 +45,7 @@ export async function updateCampaign(
   campaign,
   updateDocFunc = updateDoc,
   docFunc = doc,
-  getDocFunc = getDocs
+  getDocFunc = getDoc
 ) {
   const docRef = docFunc(db, 'campaigns', campaign.id)
   const { id, ...data } = campaign

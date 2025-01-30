@@ -7,50 +7,65 @@
         </nav>
       </aside>
       <main class="flex-1 p-4">
-        <div class="flex items-center justify-between mb-6">
-          <Heading title="Conquest of Heroes v2.5 Framework" level="1" />
+        <!-- LOADING INDICATOR -->
+        <div
+          v-if="campaignLoading || encounterLoading"
+          class="flex flex-col justify-center items-center h-full space-y-4"
+        >
+          <div
+            class="w-24 h-24 border-4 border-gray-300 border-t-blue-500 rounded-full animate-spin"
+          ></div>
+
+          <p class="text-gray-500">Loading data...</p>
+          <!-- or a spinner component -->
         </div>
 
-        <!-- Campaign Section -->
-        <div class="mb-6">
-          <div class="flex items-center justify-between mb-4">
-            <Heading title="Campaign Management" level="2" />
-            <div class="flex space-x-4">
-              <button
-                v-if="!currentCampaign"
-                @click="isModalOpen = true"
-                class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-              >
-                Add Campaign
-              </button>
-
-              <button
-                v-else
-                @click="isEditModalOpen = true"
-                class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-              >
-                Edit Campaign
-              </button>
-
-              <Button
-                v-if="currentCampaign"
-                variant="secondary"
-                @click="isDeleteConfirmModalOpen = true"
-                :loading="campaignLoading"
-              >
-                Delete Campaign
-              </Button>
-            </div>
+        <!-- ACTUAL CONTENT (only shows if NOT loading) -->
+        <div v-else>
+          <div class="flex items-center justify-between mb-6">
+            <Heading title="Conquest of Heroes v2.5 Framework" level="1" />
           </div>
 
-          <DataSection
-            v-if="playerProgression.length > 0"
-            title="Player Progression"
-            :items="playerProgression"
-          />
-        </div>
+          <!-- Campaign Section -->
+          <div class="mb-6">
+            <div class="flex items-center justify-between mb-4">
+              <Heading title="Campaign Management" level="2" />
+              <div class="flex space-x-4">
+                <button
+                  v-if="!currentCampaign"
+                  @click="isModalOpen = true"
+                  class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+                >
+                  Add Campaign
+                </button>
 
-        <!-- Encounter Section 
+                <button
+                  v-else
+                  @click="isEditModalOpen = true"
+                  class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                >
+                  Edit Campaign
+                </button>
+
+                <Button
+                  v-if="currentCampaign"
+                  variant="secondary"
+                  @click="isDeleteConfirmModalOpen = true"
+                  :loading="campaignLoading"
+                >
+                  Delete Campaign
+                </Button>
+              </div>
+            </div>
+
+            <DataSection
+              v-if="playerProgression.length > 0"
+              title="Player Progression"
+              :items="playerProgression"
+            />
+          </div>
+
+          <!-- Encounter Section 
         <div v-if="currentCampaign" class="mb-6">
           <div class="flex items-center justify-between mb-4">
             <Heading title="Encounters" level="2" />
@@ -81,7 +96,7 @@
         </div>
 
       -->
-
+        </div>
         <!-- Modals -->
 
         <!-- Confirmation Modal -->
