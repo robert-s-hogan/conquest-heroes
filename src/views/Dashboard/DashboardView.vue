@@ -25,27 +25,26 @@
           <div class="flex items-center justify-between mb-6">
             <Heading title="Conquest of Heroes v2.5 Framework" level="1" />
           </div>
-
           <!-- Campaign Section -->
           <div class="mb-6">
             <div class="flex items-center justify-between mb-4">
               <Heading title="Campaign Management" level="2" />
               <div class="flex space-x-4">
-                <button
+                <Button
                   v-if="!currentCampaign"
+                  variant="primary"
                   @click="isModalOpen = true"
-                  class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
                 >
                   Add Campaign
-                </button>
+                </Button>
 
-                <button
+                <Button
                   v-else
+                  variant="primary"
                   @click="isEditModalOpen = true"
-                  class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
                 >
                   Edit Campaign
-                </button>
+                </Button>
 
                 <Button
                   v-if="currentCampaign"
@@ -65,21 +64,19 @@
             />
           </div>
 
-          <!-- Encounter Section 
-        <div v-if="currentCampaign" class="mb-6">
-          <div class="flex items-center justify-between mb-4">
-            <Heading title="Encounters" level="2" />
-            <div>
-              <button
-                @click="isEncounterModalOpen = true"
-                class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-              >
-                Generate Encounter
-              </button>
+          <!-- Encounter Section -->
+          <div v-if="currentCampaign" class="mb-6">
+            <div class="flex items-center justify-between mb-4">
+              <Heading title="Encounters" level="2" />
+              <div>
+                <Button variant="primary" @click="isEncounterModalOpen = true">
+                  Generate Encounter
+                </Button>
+              </div>
             </div>
           </div>
 
-          List of Encounters
+          <!-- List of Encounters -->
           <div
             v-if="encounters.length > 0"
             class="border border-2 border-black rounded"
@@ -95,8 +92,6 @@
           <div v-else class="text-gray-500">No encounters available.</div>
         </div>
 
-      -->
-        </div>
         <!-- Modals -->
 
         <!-- Confirmation Modal -->
