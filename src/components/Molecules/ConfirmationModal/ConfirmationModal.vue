@@ -6,8 +6,10 @@
 
     <!-- Modal FOOTER (slot="footer") -->
     <template #footer>
-      <Button variant="secondary" @click="onCancel">Cancel</Button>
-      <Button variant="danger" @click="onConfirm">Confirm</Button>
+      <div class="flex space-x-4">
+        <Button variant="secondary" @click="onCancel">Cancel</Button>
+        <Button variant="danger" @click="onConfirm">Confirm</Button>
+      </div>
     </template>
   </BaseModal>
 </template>
