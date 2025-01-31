@@ -233,23 +233,40 @@ const confirmDeleteCampaign = async () => {
 // Handlers
 const handleAddEncounter = async (encounterData) => {
   console.log('👩‍🚀 Parent saw @add event with encounterData:', encounterData)
-
-  await addNewEncounter(encounterData)
+  // Pass campaignData as second arg
+  await addNewEncounter(encounterData, currentCampaign.value)
   isEncounterModalOpen.value = false
 }
+
 const handleUpdateEncounter = async (updatedEncounter) => {
-  await updateExistingEncounter(updatedEncounter.id, updatedEncounter)
+  await updateExistingEncounter(
+    updatedEncounter.id,
+    updatedEncounter,
+    currentCampaign.value
+  )
 }
+
 const handleDeleteEncounter = async (encounterId) => {
-  await deleteExistingEncounter(encounterId)
+  if (!encounterId || !currentCampaign.value?.id) {
+    console.error(
+      'Invalid encounterId or campaignId in handleDeleteEncounter:',
+      encounterId,
+      currentCampaign.value?.id
+    )
+    return
+  }
+  await deleteExistingEncounter(encounterId, currentCampaign.value.id)
 }
 
 // onMounted and watch
 onMounted(async () => {
   await loadCampaigns()
   if (currentCampaign.value?.id) {
-    // ✅ call method directly
-    await fetchEncountersForCampaign(currentCampaign.value.id)
+    // Pass BOTH the campaignId and the campaign object
+    await fetchEncountersForCampaign(
+      currentCampaign.value.id,
+      currentCampaign.value
+    )
   }
 })
 
@@ -257,10 +274,8 @@ watch(
   () => currentCampaign.value?.id,
   async (newCampaignId) => {
     if (newCampaignId) {
-      // ✅ call method directly
-      await fetchEncountersForCampaign(newCampaignId)
+      await fetchEncountersForCampaign(newCampaignId, currentCampaign.value)
     } else {
-      // reset local encounter data
       encounters.value = []
     }
   }

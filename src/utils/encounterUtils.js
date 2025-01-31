@@ -2,6 +2,7 @@
 import { xpThresholdsByCharLvl } from '@/utils/xpTables'
 
 export const difficultyOptions = ['Easy', 'Medium', 'Hard', 'Deadly']
+
 export const terrainOptions = [
   'Volcanic Island',
   'Forest',
@@ -122,6 +123,11 @@ export function calculateEncounterExperience(
     xpThresholdsByCharLvl[levelOfPlayerCharacters]?.[
       encounterDifficultyOption.toLowerCase()
     ]
+
+  if (!baseXP) {
+    console.error('XP Calculation Error: No base XP for difficulty')
+    return 0
+  }
 
   if (baseXP) {
     return baseXP * numberOfPlayers // Example logic

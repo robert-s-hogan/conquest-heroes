@@ -86,7 +86,10 @@ import {
   weatherOptions,
   objectivesOptions,
 } from '@/utils/encounterUtils'
-import { xpThresholdsByCharLvl } from '@/utils/xpTables'
+import {
+  characterAdvancementTable,
+  xpThresholdsByCharLvl,
+} from '@/utils/xpTables'
 
 const props = defineProps({
   isOpen: {
@@ -117,19 +120,42 @@ function generateSimpleEncounterId() {
   return Math.floor(Math.random() * 100) + 1
 }
 
-// Compute available difficulties based on remainingAdventuringDayXP
+const calculateRemainingXP = () => {
+  if (!props.campaign || !props.campaign.groupExperience) return 0
+
+  const groupXP = props.campaign.groupExperience
+  const levelData = characterAdvancementTable.find(
+    (lvl) => groupXP >= lvl.start && (lvl.end === null || groupXP <= lvl.end)
+  )
+
+  if (!levelData) return 0
+
+  const totalXPForLevel = levelData.end - levelData.start
+  const remainingXP = totalXPForLevel - (groupXP - levelData.start)
+  console.log('📊 Debug: Group XP:', groupXP, 'Remaining XP:', remainingXP)
+  return remainingXP
+}
+
 const availableDifficultyOptionsRef = computed(() => {
-  if (!props.campaign) return []
+  if (!props.campaign || !props.campaign.groupLevel) return []
 
   const xpThresholds = xpThresholdsByCharLvl[props.campaign.groupLevel]
-  const remainingXP = props.campaign.remainingAdventuringDayXP || 0
+  if (!xpThresholds) return []
 
-  return Object.entries(xpThresholds)
+  const remainingXP = calculateRemainingXP()
+  console.log('📊 Debug: Group Level:', props.campaign.groupLevel)
+  console.log('🛠️ Debug: XP Thresholds:', xpThresholds)
+  console.log('🔥 Debug: Computed Remaining XP:', remainingXP)
+
+  const filteredDifficulties = Object.entries(xpThresholds)
     .filter(([difficulty, xp]) => xp * numberOfPlayers.value <= remainingXP)
     .map(([difficulty]) => ({
       value: difficulty.charAt(0).toUpperCase() + difficulty.slice(1),
       label: difficulty.charAt(0).toUpperCase() + difficulty.slice(1),
     }))
+
+  console.log('✅ Debug: Available Difficulties:', filteredDifficulties)
+  return filteredDifficulties
 })
 
 // Watch for changes in encounterDifficultyOption to update encounterExperience

@@ -23,7 +23,7 @@
       :encounter="encounter"
       @close="isEditModalOpen = false"
       @update="handleUpdateEncounter"
-      @delete="handleDeleteEncounter"
+      @delete="handleDeleteEncounter(encounter.id)"
     />
   </div>
 </template>

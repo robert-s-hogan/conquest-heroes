@@ -20,10 +20,9 @@
         />
 
         <div className="md:col-span-2">
-          <!-- NPC Types -->
           <div class="mt-4">
             <label class="block text-gray-700">NPC Types:</label>
-            <div
+            <!-- <div
               v-if="
                 encounterData.npcTypes && Array.isArray(encounterData.npcTypes)
               "
@@ -40,17 +39,16 @@
                   class="mt-1 block w-full border border-gray-300 rounded-md p-2"
                 />
               </div>
-            </div>
+            </div> -->
           </div>
 
-          <!-- Map Locations -->
           <div class="mt-4">
             <label class="block text-gray-700">Map Locations:</label>
-            <MapDetailsContent
+            <!-- <MapDetailsContent
               :mapLocations="encounterData.mapLocations"
               :possibleItemsPerLocation="possibleItemsPerLocation"
               @update:encounterData="updateEncounterData"
-            />
+            /> -->
           </div>
         </div>
       </div>
@@ -209,6 +207,10 @@ const tabs = [
     loading: false,
   },
 ]
+
+console.log('Current Group Level:', props.campaign?.groupLevel)
+console.log('Remaining XP:', props.campaign?.remainingAdventuringDayXP)
+console.log('Encounter XP:', encounterData.encounterExperience)
 
 function updateEncounterData(newData) {
   Object.assign(encounterData, newData)
