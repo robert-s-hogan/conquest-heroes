@@ -1,3 +1,4 @@
+<!-- src/components/Organisms/AddEncounterModal/AddEncounterModal.vue -->
 <template>
   <BaseModal
     :isOpen="props.isOpen"
@@ -14,13 +15,13 @@
       />
 
       <!-- Encounter Difficulty -->
-      <!-- <SelectField
+      <SelectField
         v-model="encounterDifficultyOption"
         label="Encounter Difficulty"
         :options="availableDifficultyOptionsRef"
         placeholder="Select difficulty"
         :disabled="availableDifficultyOptionsRef.length === 0"
-      /> -->
+      />
 
       <!-- Encounter Experience (read-only) -->
       <InputField
@@ -57,7 +58,12 @@
         placeholder="Select objective"
       />
 
-      <Button :loading="isSubmitting" variant="primary" class="w-full mt-4">
+      <Button
+        type="submit"
+        :loading="isSubmitting"
+        variant="primary"
+        class="w-full mt-4"
+      >
         Add Encounter
       </Button>
     </form>
@@ -65,7 +71,7 @@
 </template>
 
 <script setup>
-import { ref, computed, inject, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import InputField from '@/components/Atoms/BaseInput/BaseInput.vue'
 import SelectField from '@/components/Atoms/BaseSelect/BaseSelect.vue'
 import BaseModal from '@/components/Atoms/BaseModal/BaseModal.vue'
@@ -87,9 +93,13 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  campaign: {
+    type: Object,
+    default: null,
+  },
 })
 
-const emit = defineEmits(['close', 'submit'])
+const emit = defineEmits(['close', 'add'])
 
 const isSubmitting = ref(false)
 
@@ -102,15 +112,17 @@ const timeOfDay = ref('')
 const weather = ref('')
 const objectivesOfEncounter = ref('')
 
-// Inject currentCampaign from parent component or composable
-const currentCampaign = inject('currentCampaign')
+// 1) Simple helper for random ID in [1..100]
+function generateSimpleEncounterId() {
+  return Math.floor(Math.random() * 100) + 1
+}
 
 // Compute available difficulties based on remainingAdventuringDayXP
 const availableDifficultyOptionsRef = computed(() => {
-  if (!currentCampaign || !currentCampaign.value) return []
+  if (!props.campaign) return []
 
-  const xpThresholds = xpThresholdsByCharLvl[currentCampaign.value.groupLevel]
-  const remainingXP = currentCampaign.value.remainingAdventuringDayXP || 0
+  const xpThresholds = xpThresholdsByCharLvl[props.campaign.groupLevel]
+  const remainingXP = props.campaign.remainingAdventuringDayXP || 0
 
   return Object.entries(xpThresholds)
     .filter(([difficulty, xp]) => xp * numberOfPlayers.value <= remainingXP)
@@ -120,26 +132,13 @@ const availableDifficultyOptionsRef = computed(() => {
     }))
 })
 
-// Watch for changes in availableDifficultyOptionsRef and set a default option
-watch(
-  availableDifficultyOptionsRef,
-  (newOptions) => {
-    if (newOptions.length > 0) {
-      encounterDifficultyOption.value = newOptions[0].value
-    } else {
-      encounterDifficultyOption.value = ''
-    }
-  },
-  { immediate: true }
-)
-
 // Watch for changes in encounterDifficultyOption to update encounterExperience
 watch(
   () => encounterDifficultyOption.value,
   (newDifficulty) => {
-    if (!currentCampaign || !currentCampaign.value) return
+    if (!props.campaign) return []
 
-    const xpThresholds = xpThresholdsByCharLvl[currentCampaign.value.groupLevel]
+    const xpThresholds = xpThresholdsByCharLvl[props.campaign.groupLevel]
     if (!xpThresholds) return
 
     const difficultyKey = newDifficulty.toLowerCase()
@@ -162,28 +161,35 @@ const objectivesOptionsRef = ref(
   objectivesOptions.map((value) => ({ value, label: value }))
 )
 
-// Modify resetForm to remove setting encounterDifficultyOption
+// Reset form
 const resetForm = async () => {
   numberOfPlayers.value = 4
   encounterExperience.value = 0
 
-  // Use random functions from encounterUtils.js
+  // Use random utility functions
   mapTerrainType.value = getRandomMapTerrainType()
-  timeOfDay.value = getRandomTimeOfDay()
-  weather.value = getRandomWeather()
-  objectivesOfEncounter.value = getRandomObjectivesOfEncounter()
-
-  // Wait for computed properties to update
-  await nextTick()
-
-  // Set default or random difficulty option based on remaining XP
   if (availableDifficultyOptionsRef.value.length > 0) {
-    // Randomly select a difficulty from available options
     const randomIndex = Math.floor(
       Math.random() * availableDifficultyOptionsRef.value.length
     )
     encounterDifficultyOption.value =
-      availableDifficultyOptionsRef.value[randomIndex].value // Set random option
+      availableDifficultyOptionsRef.value[randomIndex].value
+  } else {
+    encounterDifficultyOption.value = ''
+  }
+  timeOfDay.value = getRandomTimeOfDay()
+  weather.value = getRandomWeather()
+  objectivesOfEncounter.value = getRandomObjectivesOfEncounter()
+
+  await nextTick()
+
+  // Randomly set difficulty from available options (if any)
+  if (availableDifficultyOptionsRef.value.length > 0) {
+    const randomIndex = Math.floor(
+      Math.random() * availableDifficultyOptionsRef.value.length
+    )
+    encounterDifficultyOption.value =
+      availableDifficultyOptionsRef.value[randomIndex].value
   } else {
     encounterDifficultyOption.value = ''
   }
@@ -195,24 +201,43 @@ const closeModal = () => {
 }
 
 const handleSubmit = () => {
+  console.log('🚀 AddEncounterModal: handleSubmit triggered')
+
   isSubmitting.value = true
-  emit('submit', {
+
+  // 2) Build a more comprehensive encounter object
+  const newEncounter = {
+    // If you'd rather call it 'id', that's fine too
+    encounterNumber: generateSimpleEncounterId(),
+    date: new Date().toISOString(),
+
+    // Fields from your form
     numberOfPlayers: Number(numberOfPlayers.value),
     encounterExperience: Number(encounterExperience.value),
-    encounterAdjustedExperience: Number(encounterExperience.value), // Assuming adjusted experience is the same
+    encounterAdjustedExperience: Number(encounterExperience.value),
     encounterDifficultyOption: encounterDifficultyOption.value,
     mapTerrainType: mapTerrainType.value,
     timeOfDay: timeOfDay.value,
     weather: weather.value,
     objectivesOfEncounter: objectivesOfEncounter.value,
-  })
+
+    // Additional placeholders (if you want to store them):
+    // players: ['Player 1', 'Player 2'],
+    // npcTypes: ['', '', '', ''],
+    // mapLocations: { top: [], left: [], center: [], right: [] },
+    // shortRestNeededFirstOne: false,
+    // ...
+  }
+
+  emit('add', newEncounter)
   isSubmitting.value = false
   closeModal()
+  console.log('🚀 after emit in handleSubmit')
 }
 
-// Initialize form on component mount
+// Re-init form whenever the modal is opened or the campaign changes
 watch(
-  () => currentCampaign?.value,
+  () => props.campaign,
   (newVal) => {
     if (newVal) {
       resetForm()

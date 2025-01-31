@@ -48,7 +48,10 @@ export const useEncounterStore = defineStore('encounter', () => {
 
   // Add a new Encounter
   const addNewEncounter = async (encounterData) => {
+    console.log('🧩 store.addNewEncounter =>', encounterData)
+
     const campaignId = campaignStore.currentCampaign?.id
+    console.log(`campaignId: ${campaignId}`)
     if (!campaignId) {
       console.error('No current campaign selected.')
       return
@@ -127,10 +130,6 @@ export const useEncounterStore = defineStore('encounter', () => {
         campaignId
       )
       await updateCampaignInFirebase(campaignId, {
-        remainingAdventuringDayXP: remainingXP,
-      })
-      // Update campaign store's current campaign
-      campaignStore.updateCampaignField(campaignId, {
         remainingAdventuringDayXP: remainingXP,
       })
     } catch (err) {

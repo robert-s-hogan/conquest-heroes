@@ -4,6 +4,7 @@
     <!-- Tab Headers -->
     <div class="tabs flex space-x-4">
       <button
+        type="button"
         v-for="tab in tabs"
         :key="tab.id"
         @click.stop="activeTab = tab.id"

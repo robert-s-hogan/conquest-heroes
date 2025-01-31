@@ -210,6 +210,10 @@ const tabs = [
   },
 ]
 
+function updateEncounterData(newData) {
+  Object.assign(encounterData, newData)
+}
+
 // Initialize mapLocations if empty
 if (
   !encounterData.mapLocations ||

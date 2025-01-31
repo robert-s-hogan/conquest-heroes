@@ -121,7 +121,8 @@
         <!-- Add Encounter Modal -->
         <AddEncounterModal
           v-if="isEncounterModalOpen"
-          :campaignId="currentCampaign.id"
+          :isOpen="isEncounterModalOpen"
+          :campaign="currentCampaign"
           @close="isEncounterModalOpen = false"
           @add="handleAddEncounter"
         />
@@ -134,16 +135,18 @@
 import { computed, ref, onMounted, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useCampaignStore } from '../../store/campaignStore'
-import { useEncounterStore } from '../../store/encounterStore'
+import { useEncounters } from '@/composables/useEncounters'
 
 import Button from '@/components/Atoms/BaseButton/BaseButton.vue'
 import Heading from '@/components/Atoms/BaseHeading/BaseHeading.vue'
 import DataSection from '@/components/Organisms/DataSection/DataSection.vue'
-import EncounterItem from '@/components/Molecules/EncounterItem/EncounterItem.vue'
-import AddCampaignModal from '@/components/Organisms/AddCampaignModal/AddCampaignModal.vue'
-import AddEncounterModal from '@/components/Organisms/AddEncounterModal/AddEncounterModal.vue'
 import ConfirmationModal from '@/components/Molecules/ConfirmationModal/ConfirmationModal.vue'
+
+import AddCampaignModal from '@/components/Organisms/AddCampaignModal/AddCampaignModal.vue'
 import EditCampaignModal from '@/components/Organisms/EditCampaignModal/EditCampaignModal.vue'
+
+import EncounterItem from '@/components/Molecules/EncounterItem/EncounterItem.vue'
+import AddEncounterModal from '@/components/Organisms/AddEncounterModal/AddEncounterModal.vue'
 
 import { generateEncounterData } from '@/utils/encounterDataGenerator'
 
@@ -163,24 +166,16 @@ const {
   deleteExistingCampaign,
 } = campaignStore
 
-// Initialize Encounter Store
-const encounterStore = useEncounterStore()
-
-// ✅ 1) Only destructure reactive state from the store with storeToRefs
+// Encounter Composable
 const {
   encounters,
   loading: encounterLoading,
   error: encounterError,
-} = storeToRefs(encounterStore)
-
-// ✅ 2) Destructure methods normally (no storeToRefs!)
-const {
   fetchEncountersForCampaign,
   addNewEncounter,
   updateExistingEncounter,
   deleteExistingEncounter,
-  updateRemainingAdventuringDayXP,
-} = encounterStore
+} = useEncounters()
 
 // Compute "playerProgression"
 const playerProgression = computed(() => {
@@ -235,8 +230,10 @@ const confirmDeleteCampaign = async () => {
   await handleDeleteCampaign()
 }
 
-// Encounter Handlers
+// Handlers
 const handleAddEncounter = async (encounterData) => {
+  console.log('👩‍🚀 Parent saw @add event with encounterData:', encounterData)
+
   await addNewEncounter(encounterData)
   isEncounterModalOpen.value = false
 }

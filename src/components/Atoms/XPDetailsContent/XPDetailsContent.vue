@@ -1,4 +1,3 @@
-<!-- XPDetailsContent.vue -->
 <template>
   <div>
     <SelectField
@@ -55,30 +54,27 @@ const props = defineProps({
 // Define emits
 const emit = defineEmits(['update:encounterDetails'])
 
-// Create a local reactive object for only the relevant properties
-const localEncounterDetails = reactive({
-  mapTerrainType: props.encounterData.mapTerrainType,
-  timeOfDay: props.encounterData.timeOfDay,
-  weather: props.encounterData.weather,
-  objectivesOfEncounter: props.encounterData.objectivesOfEncounter,
-})
-// Watch for changes and emit updates
+// ✅ Now everything consistently uses localEncounterData
+const localEncounterData = reactive({ ...props.encounterData })
 
+// Watch for changes in props.encounterData -> update localEncounterData
 watch(
   () => props.encounterData,
   (newData) => {
-    Object.assign(localEncounterDetails, {
+    Object.assign(localEncounterData, {
       mapTerrainType: newData.mapTerrainType,
       timeOfDay: newData.timeOfDay,
       weather: newData.weather,
       objectivesOfEncounter: newData.objectivesOfEncounter,
+      // ...any other fields you want to keep in sync
     })
   },
   { deep: true }
 )
 
+// Watch for changes in localEncounterData -> emit to parent
 watch(
-  () => localEncounterDetails,
+  () => localEncounterData,
   (newDetails) => {
     emit('update:encounterDetails', { ...newDetails })
   },
