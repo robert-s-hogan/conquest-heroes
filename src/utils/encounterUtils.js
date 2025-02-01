@@ -53,6 +53,7 @@ export function getRandomEncounterDifficultyOption() {
   return difficultyOptions[Math.floor(Math.random() * difficultyOptions.length)]
 }
 
+// Simply generate the random items without adding any marker text.
 export function generateMapLocationsWithItems() {
   const mapLocations = {}
 
@@ -62,10 +63,8 @@ export function generateMapLocationsWithItems() {
     const selectedItems = []
 
     for (let i = 0; i < numItems; i++) {
-      // Randomly select an item from the pool
       const randomIndex = Math.floor(Math.random() * possibleItems.length)
       const selectedItem = possibleItems[randomIndex]
-
       selectedItems.push(selectedItem)
     }
 
@@ -73,6 +72,11 @@ export function generateMapLocationsWithItems() {
   })
 
   return mapLocations
+}
+
+export function getRandomOppositionStart() {
+  const options = ['Top', 'Left', 'Right']
+  return options[Math.floor(Math.random() * options.length)]
 }
 
 export function generateEncounterNumber(encounters) {

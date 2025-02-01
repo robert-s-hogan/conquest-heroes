@@ -1,4 +1,4 @@
-<!-- BaseModal.vue -->
+<!-- BaseModal.vue (After) -->
 <template>
   <div
     v-if="isOpen"
@@ -6,7 +6,10 @@
     @click="closeModal"
   >
     <div
-      :class="['bg-white p-4 rounded-lg relative', modalSizeClass]"
+      :class="[
+        'bg-white p-4 rounded-lg relative overflow-y-auto',
+        modalSizeClass,
+      ]"
       @click.stop
     >
       <!-- Close Button -->
@@ -22,8 +25,10 @@
         {{ title }}
       </h2>
 
-      <!-- Default Slot (body content) -->
-      <slot />
+      <!-- Scrollable Content Wrapper -->
+      <div class="max-h-[70vh] overflow-y-auto">
+        <slot />
+      </div>
 
       <!-- Footer Slot -->
       <div class="mt-4">

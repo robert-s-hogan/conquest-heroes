@@ -148,7 +148,7 @@ const availableDifficultyOptionsRef = computed(() => {
   console.log('🔥 Debug: Computed Remaining XP:', remainingXP)
 
   const filteredDifficulties = Object.entries(xpThresholds)
-    .filter(([difficulty, xp]) => xp * numberOfPlayers.value <= remainingXP)
+    .filter(([difficulty, xp]) => xp <= remainingXP)
     .map(([difficulty]) => ({
       value: difficulty.charAt(0).toUpperCase() + difficulty.slice(1),
       label: difficulty.charAt(0).toUpperCase() + difficulty.slice(1),
@@ -169,7 +169,7 @@ watch(
 
     const difficultyKey = newDifficulty.toLowerCase()
     const xpPerPlayer = xpThresholds[difficultyKey] || 0
-    encounterExperience.value = xpPerPlayer * numberOfPlayers.value
+    encounterExperience.value = xpPerPlayer
   }
 )
 

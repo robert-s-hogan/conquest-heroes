@@ -67,12 +67,10 @@
           <!-- Encounter Section -->
           <div v-if="currentCampaign" class="mb-6">
             <div class="flex items-center justify-between mb-4">
-              <Heading title="Encounters" level="2" />
-              <div>
-                <Button variant="primary" @click="isEncounterModalOpen = true">
-                  Generate Encounter
-                </Button>
-              </div>
+              <Heading title="Encounters" level="2" class="mb-0" />
+              <Button variant="primary" @click="isEncounterModalOpen = true">
+                Generate Encounter
+              </Button>
             </div>
           </div>
 
