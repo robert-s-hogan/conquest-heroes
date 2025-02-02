@@ -1,5 +1,6 @@
 // src/utils/encounterUtils.js
 import { xpThresholdsByCharLvl } from '@/utils/xpTables'
+import mapItems from '@/data/mapItems.json' // NEW: import flat lookup of map items
 
 export const difficultyOptions = ['Easy', 'Medium', 'Hard', 'Deadly']
 
@@ -23,55 +24,25 @@ export const objectivesOptions = [
   'Defend the Base',
 ]
 
-/**
- * Pool of possible items for each map location.
- */
-const possibleItemsPerLocation = {
-  top: [
-    'Trap - Grease Trap',
-    'Beast (Ox)',
-    "Cartographer's Station (empty)",
-    'Hidden Pitfall',
-    'Magical Barrier',
-  ],
-  left: ['Ladder, metal, 25ft telescopic', 'Rope Ladder, wooden', 'Net Trap'],
-  center: ['Levitating Stones, orbiting', 'Construct, large', 'Player Beacon'],
-  right: ['Levitating Stones, orbiting', 'Construct, large', 'Player Beacon'],
-}
-
-/**
- * Defines the number of items each location should have.
- */
-const numberOfItemsPerLocation = {
-  top: 3,
-  left: 1,
-  center: 3,
-  right: 3,
-}
-
 export function getRandomEncounterDifficultyOption() {
   return difficultyOptions[Math.floor(Math.random() * difficultyOptions.length)]
 }
 
-// Simply generate the random items without adding any marker text.
+// NEW: Generate an array of map items (agnostic to location).
+// Randomly decide on a number of slots (between 1 and 5); for each slot, with a 20% chance, select a random item from the lookup table (the item’s “name” is used here).
 export function generateMapLocationsWithItems() {
-  const mapLocations = {}
-
-  Object.keys(possibleItemsPerLocation).forEach((location) => {
-    const possibleItems = possibleItemsPerLocation[location]
-    const numItems = numberOfItemsPerLocation[location] || 1
-    const selectedItems = []
-
-    for (let i = 0; i < numItems; i++) {
-      const randomIndex = Math.floor(Math.random() * possibleItems.length)
-      const selectedItem = possibleItems[randomIndex]
-      selectedItems.push(selectedItem)
+  const numberOfSlots = 1 + Math.floor(Math.random() * 5)
+  const slots = []
+  for (let i = 0; i < numberOfSlots; i++) {
+    if (Math.random() < 0.2) {
+      // 20% chance to roll an item
+      const randomIndex = Math.floor(Math.random() * mapItems.length)
+      slots.push(mapItems[randomIndex].name)
+    } else {
+      slots.push('')
     }
-
-    mapLocations[location] = selectedItems
-  })
-
-  return mapLocations
+  }
+  return slots
 }
 
 export function getRandomOppositionStart() {
@@ -127,18 +98,11 @@ export function calculateEncounterExperience(
     xpThresholdsByCharLvl[levelOfPlayerCharacters]?.[
       encounterDifficultyOption.toLowerCase()
     ]
-
   if (!baseXP) {
     console.error('XP Calculation Error: No base XP for difficulty')
     return 0
   }
-
-  if (baseXP) {
-    return baseXP * numberOfPlayers // Example logic
-  }
-
-  console.error('Failed to calculate encounter experience')
-  return 0 // Return a default value or handle the error
+  return baseXP * numberOfPlayers
 }
 
 export function calculatePercentOfAdventuringDayXpRemaining(

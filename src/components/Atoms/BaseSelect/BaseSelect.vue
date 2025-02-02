@@ -35,7 +35,7 @@ const props = defineProps({
   },
   placeholder: {
     type: String,
-    default: 'Please select an option',
+    default: '',
   },
   id: {
     type: String,

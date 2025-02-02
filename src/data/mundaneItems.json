@@ -1,0 +1,806 @@
+[
+  {
+    "name": "Poison - Purple worm poison",
+    "chance": 0.5
+  },
+  {
+    "name": "Poison - Midnight tears",
+    "chance": 0.5
+  },
+  {
+    "name": "Plate",
+    "chance": 0.5
+  },
+  {
+    "name": "Poison - Wyvern poison",
+    "chance": 0.5
+  },
+  {
+    "name": "Spyglass",
+    "chance": 0.5
+  },
+  {
+    "name": "Half Plate",
+    "chance": 0.5
+  },
+  {
+    "name": "Poison - Torpor",
+    "chance": 0.5
+  },
+  {
+    "name": "Poison - Burnt othur fumes",
+    "chance": 0.5
+  },
+  {
+    "name": "Breastplate",
+    "chance": 0.5
+  },
+  {
+    "name": "Poison - Oil of taggit",
+    "chance": 0.5
+  },
+  {
+    "name": "Poison - Essence of ether",
+    "chance": 0.5
+  },
+  {
+    "name": "Poison - Malice",
+    "chance": 0.5
+  },
+  {
+    "name": "Poison - Pale tincture",
+    "chance": 0.5
+  },
+  {
+    "name": "Splint",
+    "chance": 0.5
+  },
+  {
+    "name": "Poison - Carrion crawler mucus",
+    "chance": 0.5
+  },
+  {
+    "name": "Poison - Drow poison",
+    "chance": 0.5
+  },
+  {
+    "name": "Poison - Serpent venom",
+    "chance": 0.5
+  },
+  {
+    "name": "Poison - Assassin's blood",
+    "chance": 0.5
+  },
+  {
+    "name": "Poison - Truth serum",
+    "chance": 0.5
+  },
+  {
+    "name": "Magnifying glass",
+    "chance": 0.5
+  },
+  {
+    "name": "Poison, basic (vial)",
+    "chance": 0.5
+  },
+  {
+    "name": "Poison - Basic Poison",
+    "chance": 0.5
+  },
+  {
+    "name": "Crossbow, hand",
+    "chance": 0.5
+  },
+  {
+    "name": "Chain Mail",
+    "chance": 0.5
+  },
+  {
+    "name": "Greatsword",
+    "chance": 0.5
+  },
+  {
+    "name": "Crossbow, heavy",
+    "chance": 0.5
+  },
+  {
+    "name": "Longbow",
+    "chance": 0.5
+  },
+  {
+    "name": "Chain Shirt",
+    "chance": 0.5
+  },
+  {
+    "name": "Scail Mail",
+    "chance": 0.5
+  },
+  {
+    "name": "Alchemist's Fire (flask)",
+    "chance": 0.5
+  },
+  {
+    "name": "Potion of healing",
+    "chance": 0.5
+  },
+  {
+    "name": "Spellbook",
+    "chance": 0.5
+  },
+  {
+    "name": "Alchemist's supplies",
+    "chance": 0.5
+  },
+  {
+    "name": "Tinker's tools",
+    "chance": 0.5
+  },
+  {
+    "name": "Poisoner's kit",
+    "chance": 0.5
+  },
+  {
+    "name": "Poison - Antitoxin",
+    "chance": 0.5
+  },
+  {
+    "name": "Studded Leather",
+    "chance": 0.5
+  },
+  {
+    "name": "Lute",
+    "chance": 0.5
+  },
+  {
+    "name": "Greataxe",
+    "chance": 0.5
+  },
+  {
+    "name": "Ring Mail",
+    "chance": 0.5
+  },
+  {
+    "name": "Glassblower's tools",
+    "chance": 0.5
+  },
+  {
+    "name": "Bagpipe",
+    "chance": 0.5
+  },
+  {
+    "name": "Lyre",
+    "chance": 0.5
+  },
+  {
+    "name": "Viol",
+    "chance": 0.5
+  },
+  {
+    "name": "Crossbow, light",
+    "chance": 0.5
+  },
+  {
+    "name": "Shortbow",
+    "chance": 0.5
+  },
+  {
+    "name": "Rapier",
+    "chance": 0.5
+  },
+  {
+    "name": "Scimitar",
+    "chance": 0.5
+  },
+  {
+    "name": "Acid (vial)",
+    "chance": 0.5
+  },
+  {
+    "name": "Book",
+    "chance": 0.5
+  },
+  {
+    "name": "Climber's kit",
+    "chance": 0.5
+  },
+  {
+    "name": "Component Pouch",
+    "chance": 0.5
+  },
+  {
+    "name": "Holy water (flask)",
+    "chance": 0.5
+  },
+  {
+    "name": "Hourglass",
+    "chance": 0.5
+  },
+  {
+    "name": "Jeweler's tools",
+    "chance": 0.5
+  },
+  {
+    "name": "Navigator's tools",
+    "chance": 0.5
+  },
+  {
+    "name": "Thieves' tools",
+    "chance": 0.5
+  },
+  {
+    "name": "Disguise kit",
+    "chance": 0.5
+  },
+  {
+    "name": "Dulcimer",
+    "chance": 0.5
+  },
+  {
+    "name": "Glaive",
+    "chance": 0.5
+  },
+  {
+    "name": "Halberd",
+    "chance": 0.5
+  },
+  {
+    "name": "Orb",
+    "chance": 0.5
+  },
+  {
+    "name": "Brewer's supplies",
+    "chance": 0.5
+  },
+  {
+    "name": "Smith's tools",
+    "chance": 0.5
+  },
+  {
+    "name": "Longsword",
+    "chance": 0.5
+  },
+  {
+    "name": "Morningstar",
+    "chance": 0.5
+  },
+  {
+    "name": "Warhammer",
+    "chance": 0.5
+  },
+  {
+    "name": "Clothes, Fine",
+    "chance": 0.5
+  },
+  {
+    "name": "Cartographer's tools",
+    "chance": 0.5
+  },
+  {
+    "name": "Forgery kit",
+    "chance": 0.5
+  },
+  {
+    "name": "Pan Flute",
+    "chance": 0.5
+  },
+  {
+    "name": "Battleaxe",
+    "chance": 0.5
+  },
+  {
+    "name": "Flail",
+    "chance": 0.5
+  },
+  {
+    "name": "Lance",
+    "chance": 0.5
+  },
+  {
+    "name": "Maul",
+    "chance": 0.5
+  },
+  {
+    "name": "Shortsword",
+    "chance": 0.5
+  },
+  {
+    "name": "Blowgun",
+    "chance": 0.5
+  },
+  {
+    "name": "Leather",
+    "chance": 0.5
+  },
+  {
+    "name": "Hide",
+    "chance": 0.5
+  },
+  {
+    "name": "Shield",
+    "chance": 0.5
+  },
+  {
+    "name": "Crystal",
+    "chance": 0.5
+  },
+  {
+    "name": "Rod",
+    "chance": 0.5
+  },
+  {
+    "name": "Wand",
+    "chance": 0.5
+  },
+  {
+    "name": "Yew Wand",
+    "chance": 0.5
+  },
+  {
+    "name": "Ink (1 ounce bottle)",
+    "chance": 0.5
+  },
+  {
+    "name": "Lantern, Bullseye",
+    "chance": 0.5
+  },
+  {
+    "name": "Lock",
+    "chance": 0.5
+  },
+  {
+    "name": "Rope, silk (50 feet)",
+    "chance": 0.5
+  },
+  {
+    "name": "Calligrapher's supplies",
+    "chance": 0.5
+  },
+  {
+    "name": "Painter's supplies",
+    "chance": 0.5
+  },
+  {
+    "name": "Mason's tools",
+    "chance": 0.5
+  },
+  {
+    "name": "Potter's tools",
+    "chance": 0.5
+  },
+  {
+    "name": "Carpenter's tools",
+    "chance": 0.5
+  },
+  {
+    "name": "Drum",
+    "chance": 0.5
+  },
+  {
+    "name": "Emblem",
+    "chance": 0.5
+  },
+  {
+    "name": "Dart (10)",
+    "chance": 0.5
+  },
+  {
+    "name": "Bucket",
+    "chance": 0.5
+  },
+  {
+    "name": "Piton (10)",
+    "chance": 0.5
+  },
+  {
+    "name": "Pole (10-foot)",
+    "chance": 0.5
+  },
+  {
+    "name": "Signal whistle (2)",
+    "chance": 0.5
+  },
+  {
+    "name": "Handaxe",
+    "chance": 0.5
+  },
+  {
+    "name": "Mace",
+    "chance": 0.5
+  },
+  {
+    "name": "Pike",
+    "chance": 0.5
+  },
+  {
+    "name": "Trident",
+    "chance": 0.5
+  },
+  {
+    "name": "War pick",
+    "chance": 0.5
+  },
+  {
+    "name": "Padded",
+    "chance": 0.5
+  },
+  {
+    "name": "Staff",
+    "chance": 0.5
+  },
+  {
+    "name": "Chain (10ft)",
+    "chance": 0.5
+  },
+  {
+    "name": "Chest",
+    "chance": 0.5
+  },
+  {
+    "name": "Clothes, Costume",
+    "chance": 0.5
+  },
+  {
+    "name": "Wooden Staff",
+    "chance": 0.5
+  },
+  {
+    "name": "Healer's kit",
+    "chance": 0.5
+  },
+  {
+    "name": "Amulet",
+    "chance": 0.5
+  },
+  {
+    "name": "Reliquary",
+    "chance": 0.5
+  },
+  {
+    "name": "Hunting Trap",
+    "chance": 0.5
+  },
+  {
+    "name": "Lantern, hooded",
+    "chance": 0.5
+  },
+  {
+    "name": "Mirror, steel",
+    "chance": 0.5
+  },
+  {
+    "name": "Perfume (vial)",
+    "chance": 0.5
+  },
+  {
+    "name": "Scale, merchant's",
+    "chance": 0.5
+  },
+  {
+    "name": "Signet ring",
+    "chance": 0.5
+  },
+  {
+    "name": "Cobbler's tools",
+    "chance": 0.5
+  },
+  {
+    "name": "Leatherworker's tools",
+    "chance": 0.5
+  },
+  {
+    "name": "Herbalism kit",
+    "chance": 0.5
+  },
+  {
+    "name": "Playing card set",
+    "chance": 0.5
+  },
+  {
+    "name": "Javelin (2)",
+    "chance": 0.5
+  },
+  {
+    "name": "Blanket (2)",
+    "chance": 0.5
+  },
+  {
+    "name": "Clothes, Common",
+    "chance": 0.5
+  },
+  {
+    "name": "Lamp",
+    "chance": 0.5
+  },
+  {
+    "name": "Pouch",
+    "chance": 0.5
+  },
+  {
+    "name": "Rations (2 days)",
+    "chance": 0.5
+  },
+  {
+    "name": "Sealing wax",
+    "chance": 0.5
+  },
+  {
+    "name": "Tinderbox",
+    "chance": 0.5
+  },
+  {
+    "name": "Sling Bullets (20)",
+    "chance": 0.5
+  },
+  {
+    "name": "Ram, portable",
+    "chance": 0.5
+  },
+  {
+    "name": "Basket",
+    "chance": 0.5
+  },
+  {
+    "name": "Horn",
+    "chance": 0.5
+  },
+  {
+    "name": "Flask or Tankard (4)",
+    "chance": 0.5
+  },
+  {
+    "name": "Ink pen (3)",
+    "chance": 0.5
+  },
+  {
+    "name": "Jug or pitcher (2)",
+    "chance": 0.5
+  },
+  {
+    "name": "Soap (5)",
+    "chance": 0.5
+  },
+  {
+    "name": "Dagger",
+    "chance": 0.5
+  },
+  {
+    "name": "Light hammer",
+    "chance": 0.5
+  },
+  {
+    "name": "Whip",
+    "chance": 0.5
+  },
+  {
+    "name": "Abacus",
+    "chance": 0.5
+  },
+  {
+    "name": "Backpack",
+    "chance": 0.5
+  },
+  {
+    "name": "Barrel",
+    "chance": 0.5
+  },
+  {
+    "name": "Bottle, Glass",
+    "chance": 0.5
+  },
+  {
+    "name": "Clothes, Traveler's",
+    "chance": 0.5
+  },
+  {
+    "name": "Crowbar",
+    "chance": 0.5
+  },
+  {
+    "name": "Grappling Hook",
+    "chance": 0.5
+  },
+  {
+    "name": "Hammer, Sledge",
+    "chance": 0.5
+  },
+  {
+    "name": "Manacles",
+    "chance": 0.5
+  },
+  {
+    "name": "Pick, miner's",
+    "chance": 0.5
+  },
+  {
+    "name": "Pot, iron",
+    "chance": 0.5
+  },
+  {
+    "name": "Shovel",
+    "chance": 0.5
+  },
+  {
+    "name": "Tent, two-person",
+    "chance": 0.5
+  },
+  {
+    "name": "Flute",
+    "chance": 0.5
+  },
+  {
+    "name": "Shawm",
+    "chance": 0.5
+  },
+  {
+    "name": "Greatclub",
+    "chance": 0.5
+  },
+  {
+    "name": "Quarterstaff",
+    "chance": 0.5
+  },
+  {
+    "name": "Mess kit",
+    "chance": 0.5
+  },
+  {
+    "name": "Paper (10 sheets)",
+    "chance": 0.5
+  },
+  {
+    "name": "Waterskin (2)",
+    "chance": 0.5
+  },
+  {
+    "name": "Candles (5)",
+    "chance": 0.5
+  },
+  {
+    "name": "Chalk (10 piece)",
+    "chance": 0.5
+  },
+  {
+    "name": "Sack (5)",
+    "chance": 0.5
+  },
+  {
+    "name": "Torch (10)",
+    "chance": 0.5
+  },
+  {
+    "name": "Whetstone (5)",
+    "chance": 0.5
+  },
+  {
+    "name": "Sickle",
+    "chance": 0.5
+  },
+  {
+    "name": "Spear",
+    "chance": 0.5
+  },
+  {
+    "name": "Net",
+    "chance": 0.5
+  },
+  {
+    "name": "Arrows (20)",
+    "chance": 0.5
+  },
+  {
+    "name": "Blowgun Needle (50)",
+    "chance": 0.5
+  },
+  {
+    "name": "Crossbow Bolts (20)",
+    "chance": 0.5
+  },
+  {
+    "name": "Ball Bearings (bag of 1000)",
+    "chance": 0.5
+  },
+  {
+    "name": "Bedroll",
+    "chance": 0.5
+  },
+  {
+    "name": "Bell",
+    "chance": 0.5
+  },
+  {
+    "name": "Block and Tackle",
+    "chance": 0.5
+  },
+  {
+    "name": "Caltrops (bag of 20)",
+    "chance": 0.5
+  },
+  {
+    "name": "Case, Crossbow Bolt",
+    "chance": 0.5
+  },
+  {
+    "name": "Case, Map and Scroll",
+    "chance": 0.5
+  },
+  {
+    "name": "Sprig of Mistletoe",
+    "chance": 0.5
+  },
+  {
+    "name": "Totem",
+    "chance": 0.5
+  },
+  {
+    "name": "Flask or Tankard",
+    "chance": 0.5
+  },
+  {
+    "name": "Hammer",
+    "chance": 0.5
+  },
+  {
+    "name": "Quiver",
+    "chance": 0.5
+  },
+  {
+    "name": "Robes",
+    "chance": 0.5
+  },
+  {
+    "name": "Rope, hempen (50 feet)",
+    "chance": 0.5
+  },
+  {
+    "name": "Spikes, iron (10)",
+    "chance": 0.5
+  },
+  {
+    "name": "Vial",
+    "chance": 0.5
+  },
+  {
+    "name": "Cook's utensils",
+    "chance": 0.5
+  },
+  {
+    "name": "Weaver's tools",
+    "chance": 0.5
+  },
+  {
+    "name": "Woodcarver's tools",
+    "chance": 0.5
+  },
+  {
+    "name": "Dragonchess set",
+    "chance": 0.5
+  },
+  {
+    "name": "Three-Dragon Ante set",
+    "chance": 0.5
+  },
+  {
+    "name": "Club (2)",
+    "chance": 0.5
+  },
+  {
+    "name": "Sling (2)",
+    "chance": 0.5
+  },
+  {
+    "name": "Ladder (10-foot)",
+    "chance": 0.5
+  },
+  {
+    "name": "Oil (3 flasks)",
+    "chance": 0.5
+  },
+  {
+    "name": "Parchment (10 sheets)",
+    "chance": 0.5
+  },
+  {
+    "name": "Dice set",
+    "chance": 0.5
+  }
+]

@@ -2,7 +2,7 @@
 <template>
   <div class="p-4">
     <h3 class="text-xl font-semibold mb-4">XP &amp; Difficulty Details</h3>
-    <div class="space-y-4">
+    <div class="space-y-4 grid grid-cols-4 gap-4">
       <!-- Difficulty Select -->
       <SelectField
         v-model="localData.encounterDifficultyOption"

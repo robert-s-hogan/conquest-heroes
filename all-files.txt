@@ -1,0 +1,4507 @@
+<template>
+  <div>
+    <router-view />
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted } from "vue";
+import { auth } from "@/firebase/firebaseConfig";
+import { onAuthStateChanged } from "firebase/auth";
+import { useRouter } from "vue-router";
+
+const isAuthenticated = ref(false);
+const router = useRouter();
+
+onMounted(() => {
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      isAuthenticated.value = true;
+    } else {
+      isAuthenticated.value = false;
+      router.push("/"); // Redirect to home if not authenticated
+    }
+  });
+});
+</script>
+// src/composables/useAuth.js
+import { auth } from "@/firebase/firebaseConfig";
+import {
+  login as loginService,
+  logout as logoutService,
+  register as registerService,
+  loginWithGoogle as googleLoginService,
+} from "@/services/Auth/authServices";
+
+export const useAuth = () => {
+  // General login function for email/password
+  const login = async (email, password) => {
+    try {
+      const user = await loginService(auth, email, password);
+      console.log("User logged in:", {
+        userName: user.displayName,
+        email: user.email,
+      });
+      return { userName: user.displayName, email: user.email };
+    } catch (error) {
+      console.error("Login failed:", error.message);
+      throw error;
+    }
+  };
+
+  // Specific login function using signInWithPopup for Google
+  const loginWithGoogle = async () => {
+    try {
+      const user = await googleLoginService(auth);
+      console.log("User logged in with Google:", {
+        userName: user.displayName,
+        email: user.email,
+      });
+      return { userName: user.displayName, email: user.email };
+    } catch (error) {
+      console.error("Google login failed:", error.message);
+      throw error;
+    }
+  };
+
+  // Register function
+  const register = async (email, password) => {
+    try {
+      const userCredential = await registerService(auth, email, password);
+      console.log("User registered:", userCredential.user.email);
+      return userCredential.user;
+    } catch (error) {
+      console.error("Registration failed:", error.message);
+      throw error;
+    }
+  };
+
+  // Logout function
+  const logout = async () => {
+    try {
+      await logoutService(auth);
+      console.log("User logged out");
+    } catch (error) {
+      console.error("Logout failed:", error.message);
+      throw error;
+    }
+  };
+
+  return { login, loginWithGoogle, register, logout };
+};
+// src/composables/useEncounters.js (Final)
+
+import { ref } from 'vue'
+import {
+  fbFetchEncountersForCampaign,
+  fbAddEncounter,
+  fbUpdateEncounter,
+  fbDeleteEncounter,
+  fbFetchEncounterById,
+} from '@/services/Encounter/encounterService'
+import { calculateEncounterFields } from '@/utils/calculateEncounterFields'
+// or: import { generateEncounterData } from '@/utils/encounterDataGenerator'
+
+export function useEncounters() {
+  // Reactive State
+  const encounters = ref([])
+  const currentEncounter = ref(null)
+  const loading = ref(false)
+  const error = ref(null)
+
+  /**
+   * 1) Fetch Encounters for a Campaign
+   * Make sure to pass campaignData as the second arg if you need xpThresholds, etc.
+   */
+  async function fetchEncountersForCampaign(campaignId, campaignData) {
+    loading.value = true
+    error.value = null
+    try {
+      const rawData = await fbFetchEncountersForCampaign(campaignId)
+
+      // If no campaignData is provided, we can skip or safely handle
+      // e.g. if (!campaignData) { encounters.value = rawData; return; }
+
+      // Map and derive
+      encounters.value = rawData.map((enc) => {
+        const updated = calculateEncounterFields(enc, campaignData)
+        return { ...enc, ...updated }
+      })
+
+      // Optionally set first as current
+      currentEncounter.value = encounters.value[0] || null
+    } catch (err) {
+      error.value = err
+      console.error('Error fetching encounters:', err)
+    } finally {
+      loading.value = false
+    }
+  }
+
+  /**
+   * 2) Add a New Encounter
+   */
+  async function addNewEncounter(baseEncounterData, campaignData) {
+    loading.value = true
+    error.value = null
+    try {
+      // If you need xpThresholds, ensure campaignData is passed in
+      const derived = calculateEncounterFields(baseEncounterData, campaignData)
+      const newEncounterData = {
+        ...baseEncounterData,
+        ...derived,
+        createdAt: new Date().toISOString(),
+      }
+
+      // Firestore add: note signature is (campaignId, encounterData)
+      const doc = await fbAddEncounter(campaignData.id, newEncounterData)
+
+      // Local state
+      encounters.value.push(doc)
+      currentEncounter.value = doc
+    } catch (err) {
+      error.value = err
+      console.error('Error adding new encounter:', err)
+    } finally {
+      loading.value = false
+    }
+  }
+
+  /**
+   * 3) Edit/Update an Encounter
+   */
+  async function updateExistingEncounter(
+    encounterId,
+    updatedEncounterData,
+    campaignData
+  ) {
+    if (!encounterId) {
+      console.error('No encounterId provided to updateExistingEncounter.')
+      return
+    }
+    loading.value = true
+    error.value = null
+    try {
+      const derived = calculateEncounterFields(
+        updatedEncounterData,
+        campaignData
+      )
+      const finalData = { ...updatedEncounterData, ...derived }
+
+      await fbUpdateEncounter(campaignData.id, encounterId, finalData)
+
+      // Update local
+      const index = encounters.value.findIndex((enc) => enc.id === encounterId)
+      if (index !== -1) {
+        encounters.value[index] = { ...encounters.value[index], ...finalData }
+        if (currentEncounter.value?.id === encounterId) {
+          currentEncounter.value = encounters.value[index]
+        }
+      }
+    } catch (err) {
+      error.value = err
+      console.error('Error updating encounter:', err)
+    } finally {
+      loading.value = false
+    }
+  }
+
+  /**
+   * 4) Delete an Encounter
+   */
+  async function deleteExistingEncounter(encounterId, campaignId) {
+    if (!encounterId || !campaignId) {
+      console.error('Invalid arguments to deleteExistingEncounter:', {
+        encounterId,
+        campaignId,
+      })
+      return
+    }
+
+    try {
+      await fbDeleteEncounter(campaignId, encounterId)
+      encounters.value = encounters.value.filter(
+        (enc) => enc.id !== encounterId
+      )
+      console.log(`Successfully deleted encounter ${encounterId}`)
+    } catch (err) {
+      console.error('Error deleting encounter:', err)
+    }
+  }
+
+  /**
+   * 5) Fetch Single Encounter by ID
+   */
+  async function loadEncounterById(encounterId, campaignData) {
+    loading.value = true
+    error.value = null
+    try {
+      const doc = await fbFetchEncounterById(campaignData.id, encounterId)
+      if (!doc) {
+        error.value = new Error('Encounter not found')
+        return
+      }
+      const derived = calculateEncounterFields(doc, campaignData)
+      currentEncounter.value = { ...doc, ...derived }
+    } catch (err) {
+      error.value = err
+      console.error('Error fetching encounter by ID:', err)
+    } finally {
+      loading.value = false
+    }
+  }
+
+  return {
+    // State
+    encounters,
+    currentEncounter,
+    loading,
+    error,
+    // Actions
+    fetchEncountersForCampaign,
+    addNewEncounter,
+    updateExistingEncounter,
+    deleteExistingEncounter,
+    loadEncounterById,
+  }
+}
+// composables/useCampaigns.js (After)
+
+import { ref } from 'vue'
+import {
+  fetchCampaigns as fbFetchCampaigns,
+  addCampaign as fbAddCampaign,
+  updateCampaign as fbUpdateCampaign,
+  deleteCampaign as fbDeleteCampaign,
+  fetchCampaignById as fbFetchCampaignById,
+} from '@/services/Campaign/campaignService'
+
+// Optional if you need derived XP or other calculations:
+import { calculateXpFields } from '@/utils/xpTables'
+import { calculateDerivedFields } from '@/utils/derivedFields'
+
+// This composable focuses on CRUD & derived transformations:
+export function useCampaigns() {
+  const campaigns = ref([])
+  const currentCampaign = ref(null)
+  const loading = ref(false)
+  const error = ref(null)
+
+  // ===========================
+  // 1) Fetch All Campaigns
+  // ===========================
+  async function loadCampaigns() {
+    loading.value = true
+    error.value = null
+    try {
+      const rawData = await fbFetchCampaigns()
+      campaigns.value = rawData.map((c) => {
+        const xpInfo = calculateXpFields(c.groupExperience || 0)
+        const derived = calculateDerivedFields({ ...c, ...xpInfo })
+        return { ...c, ...xpInfo, ...derived }
+      })
+      // Optionally set first campaign as current
+      currentCampaign.value = campaigns.value[0] || null
+    } catch (err) {
+      error.value = err
+      console.error('Error loading campaigns:', err)
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // ===========================
+  // 2) Add a New Campaign
+  // ===========================
+  async function addNewCampaign(campaignName, description, startXp) {
+    loading.value = true
+    error.value = null
+    try {
+      // If you do calculations on XP, keep them:
+      const xpInfo = calculateXpFields(Number(startXp))
+      const derived = calculateDerivedFields({
+        campaignName,
+        description, // keep the description
+        groupExperience: Number(startXp),
+        ...xpInfo,
+      })
+      // Now include description:
+      const newCampaignData = {
+        campaignName,
+        description,
+        groupExperience: Number(startXp),
+        ...xpInfo,
+        ...derived,
+        startDate: new Date().toISOString(),
+        deathPenaltyMultiplier: 0,
+        cumulativeGoldEarned: 0,
+      }
+
+      const doc = await fbAddCampaign(newCampaignData)
+      campaigns.value.push(doc)
+      currentCampaign.value = doc
+    } catch (err) {
+      error.value = err
+      console.error('Error adding campaign:', err)
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // ===========================
+  // 3) Edit/Update a Campaign
+  // ===========================
+  async function editExistingCampaign(updated) {
+    loading.value = true
+    error.value = null
+    try {
+      const xpInfo = calculateXpFields(Number(updated.groupExperience || 0))
+      const derived = calculateDerivedFields({ ...updated, ...xpInfo })
+      const finalData = { ...updated, ...xpInfo, ...derived }
+
+      // Make sure finalData has no nested Firestore references
+      // or other objects that Firestore might interpret as queries.
+
+      await fbUpdateCampaign(finalData) // from your campaignService
+
+      // update local store
+      const index = campaigns.value.findIndex((c) => c.id === updated.id)
+      if (index !== -1) {
+        campaigns.value[index] = { ...campaigns.value[index], ...finalData }
+        if (currentCampaign.value?.id === updated.id) {
+          currentCampaign.value = campaigns.value[index]
+        }
+      }
+    } catch (err) {
+      console.error('Error editing campaign:', err)
+      error.value = err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // ===========================
+  // 4) Delete a Campaign
+  // ===========================
+  async function deleteExistingCampaign(id) {
+    loading.value = true
+    error.value = null
+    try {
+      await fbDeleteCampaign(id)
+      campaigns.value = campaigns.value.filter((c) => c.id !== id)
+      if (currentCampaign.value?.id === id) {
+        currentCampaign.value = campaigns.value[0] || null
+      }
+    } catch (err) {
+      error.value = err
+      console.error('Error deleting campaign:', err)
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // ===========================
+  // 5) Fetch by ID
+  // ===========================
+  async function loadCampaignById(id) {
+    loading.value = true
+    error.value = null
+    try {
+      const doc = await fbFetchCampaignById(id)
+      const xpInfo = calculateXpFields(doc.groupExperience || 0)
+      const derived = calculateDerivedFields({ ...doc, ...xpInfo })
+      currentCampaign.value = { ...doc, ...xpInfo, ...derived }
+    } catch (err) {
+      error.value = err
+      console.error('Error fetching campaign by ID:', err)
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // Return Reactive State & Methods
+  return {
+    // state
+    campaigns,
+    currentCampaign,
+    loading,
+    error,
+    // actions
+    loadCampaigns,
+    addNewCampaign,
+    editExistingCampaign,
+    deleteExistingCampaign,
+    loadCampaignById,
+  }
+}
+// src/utils/xpTables.js
+
+// XP thresholds by character level
+export const xpThresholdsByCharLvl = {
+  1: { easy: 25, medium: 50, hard: 75, deadly: 100 },
+  2: { easy: 50, medium: 100, hard: 150, deadly: 200 },
+  3: { easy: 75, medium: 150, hard: 225, deadly: 400 },
+  4: { easy: 125, medium: 250, hard: 375, deadly: 500 },
+  5: { easy: 250, medium: 500, hard: 750, deadly: 1100 },
+  6: { easy: 300, medium: 600, hard: 900, deadly: 1400 },
+  7: { easy: 350, medium: 750, hard: 1100, deadly: 1700 },
+  8: { easy: 450, medium: 900, hard: 1400, deadly: 2100 },
+  9: { easy: 550, medium: 1100, hard: 1600, deadly: 2400 },
+  10: { easy: 600, medium: 1200, hard: 1900, deadly: 2800 },
+  11: { easy: 800, medium: 1600, hard: 2400, deadly: 3600 },
+  12: { easy: 1000, medium: 2000, hard: 3000, deadly: 4500 },
+  13: { easy: 1100, medium: 2200, hard: 3400, deadly: 5100 },
+  14: { easy: 1250, medium: 2500, hard: 3800, deadly: 5700 },
+  15: { easy: 1400, medium: 2800, hard: 4300, deadly: 6400 },
+  16: { easy: 1600, medium: 3200, hard: 4800, deadly: 7200 },
+  17: { easy: 2000, medium: 3900, hard: 5900, deadly: 8800 },
+  18: { easy: 2100, medium: 4200, hard: 6300, deadly: 9500 },
+  19: { easy: 2400, medium: 4900, hard: 7300, deadly: 10900 },
+  20: { easy: 2800, medium: 5700, hard: 8500, deadly: 12700 },
+}
+
+// Recommended XP limits for a full adventuring day, by level
+export const adventuringDayXpLimits = [
+  // Renamed from adventuringDayXpLimit
+  { level: 1, xp: 300 },
+  { level: 2, xp: 600 },
+  { level: 3, xp: 1200 },
+  { level: 4, xp: 1700 },
+  { level: 5, xp: 3500 },
+  { level: 6, xp: 4000 },
+  { level: 7, xp: 5000 },
+  { level: 8, xp: 6000 },
+  { level: 9, xp: 7500 },
+  { level: 10, xp: 9000 },
+  { level: 11, xp: 10500 },
+  { level: 12, xp: 11500 },
+  { level: 13, xp: 13500 },
+  { level: 14, xp: 15000 },
+  { level: 15, xp: 18000 },
+  { level: 16, xp: 20000 },
+  { level: 17, xp: 25000 },
+  { level: 18, xp: 27000 },
+  { level: 19, xp: 30000 },
+  { level: 20, xp: 40000 },
+]
+
+// Character advancement table by level
+export const characterAdvancementTable = [
+  { level: 1, start: 0, end: 299, needed: 300, total: 299 },
+  { level: 2, start: 300, end: 899, needed: 600, total: 1199 },
+  { level: 3, start: 900, end: 2699, needed: 1800, total: 3599 },
+  { level: 4, start: 2700, end: 6499, needed: 3800, total: 9199 },
+  { level: 5, start: 6500, end: 13999, needed: 7500, total: 20499 },
+  { level: 6, start: 14000, end: 22999, needed: 9000, total: 36999 },
+  { level: 7, start: 23000, end: 33999, needed: 11000, total: 56999 },
+  { level: 8, start: 34000, end: 47999, needed: 14000, total: 81999 },
+  { level: 9, start: 48000, end: 63999, needed: 16000, total: 111999 },
+  { level: 10, start: 64000, end: 84999, needed: 21000, total: 148999 },
+  { level: 11, start: 85000, end: 99999, needed: 15000, total: 184999 },
+  { level: 12, start: 100000, end: 119999, needed: 20000, total: 219999 },
+  { level: 13, start: 120000, end: 139999, needed: 20000, total: 259999 },
+  { level: 14, start: 140000, end: 164999, needed: 25000, total: 304999 },
+  { level: 15, start: 165000, end: 194999, needed: 30000, total: 359999 },
+  { level: 16, start: 195000, end: 224999, needed: 30000, total: 419999 },
+  { level: 17, start: 225000, end: 264999, needed: 40000, total: 489999 },
+  { level: 18, start: 265000, end: 304999, needed: 40000, total: 569999 },
+  { level: 19, start: 305000, end: 354999, needed: 50000, total: 659999 },
+  { level: 20, start: 355000, end: null, needed: null, total: null },
+]
+
+export function calculateXpFields(playerStartExperience) {
+  const xpTotalToLevelTable = [
+    { xpStart: 0, xpEnd: 299, xpNeeded: 300, xpTotal: 299, level: 1 },
+    { xpStart: 300, xpEnd: 899, xpNeeded: 600, xpTotal: 1199, level: 2 },
+    { xpStart: 900, xpEnd: 2699, xpNeeded: 1800, xpTotal: 3599, level: 3 },
+    { xpStart: 2700, xpEnd: 6499, xpNeeded: 3800, xpTotal: 9199, level: 4 },
+    { xpStart: 6500, xpEnd: 13999, xpNeeded: 7500, xpTotal: 20499, level: 5 },
+    { xpStart: 14000, xpEnd: 22999, xpNeeded: 9000, xpTotal: 36999, level: 6 },
+    { xpStart: 23000, xpEnd: 33999, xpNeeded: 11000, xpTotal: 56999, level: 7 },
+    { xpStart: 34000, xpEnd: 47999, xpNeeded: 14000, xpTotal: 81999, level: 8 },
+    {
+      xpStart: 48000,
+      xpEnd: 63999,
+      xpNeeded: 16000,
+      xpTotal: 111999,
+      level: 9,
+    },
+    {
+      xpStart: 64000,
+      xpEnd: 84999,
+      xpNeeded: 21000,
+      xpTotal: 148999,
+      level: 10,
+    },
+    {
+      xpStart: 85000,
+      xpEnd: 99999,
+      xpNeeded: 15000,
+      xpTotal: 184999,
+      level: 11,
+    },
+    {
+      xpStart: 100000,
+      xpEnd: 119999,
+      xpNeeded: 20000,
+      xpTotal: 219999,
+      level: 12,
+    },
+    {
+      xpStart: 120000,
+      xpEnd: 139999,
+      xpNeeded: 20000,
+      xpTotal: 259999,
+      level: 13,
+    },
+    {
+      xpStart: 140000,
+      xpEnd: 164999,
+      xpNeeded: 25000,
+      xpTotal: 304999,
+      level: 14,
+    },
+    {
+      xpStart: 165000,
+      xpEnd: 194999,
+      xpNeeded: 30000,
+      xpTotal: 359999,
+      level: 15,
+    },
+    {
+      xpStart: 195000,
+      xpEnd: 224999,
+      xpNeeded: 30000,
+      xpTotal: 419999,
+      level: 16,
+    },
+    {
+      xpStart: 225000,
+      xpEnd: 264999,
+      xpNeeded: 40000,
+      xpTotal: 489999,
+      level: 17,
+    },
+    {
+      xpStart: 265000,
+      xpEnd: 304999,
+      xpNeeded: 40000,
+      xpTotal: 569999,
+      level: 18,
+    },
+    {
+      xpStart: 305000,
+      xpEnd: 354999,
+      xpNeeded: 50000,
+      xpTotal: 659999,
+      level: 19,
+    },
+    { xpStart: 355000, xpEnd: null, xpNeeded: null, xpTotal: null, level: 20 },
+  ]
+
+  let groupLevel = 1
+  let xpThresholds = { easy: 0, medium: 0, hard: 0, deadly: 0 }
+  let adventuringDayXpLimit = 0
+
+  for (const levelData of xpTotalToLevelTable) {
+    if (
+      playerStartExperience >= levelData.xpStart &&
+      (levelData.xpEnd === null || playerStartExperience <= levelData.xpEnd)
+    ) {
+      groupLevel = levelData.level
+      xpThresholds = xpThresholdsByCharLvl[groupLevel] || {
+        easy: 0,
+        medium: 0,
+        hard: 0,
+        deadly: 0,
+      }
+
+      // Corrected to use adventuringDayXpLimits
+      const xpLimitData = adventuringDayXpLimits.find(
+        (dayXp) => dayXp.level === groupLevel
+      )
+
+      adventuringDayXpLimit = xpLimitData ? xpLimitData.xp : 0
+      console.log('🎯 Debug: Adventuring Day XP Limit:', adventuringDayXpLimit)
+
+      break
+    }
+  }
+
+  console.log('✅ Found Group Level:', groupLevel)
+
+  return {
+    groupLevel,
+    xpThresholds,
+    adventuringDayXpLimit,
+    currentAdventuringDayXp: adventuringDayXpLimit,
+  }
+}
+
+export function calculateRemainingAdventuringDayXP(
+  adventuringDayXpLimit,
+  usedXp
+) {
+  return adventuringDayXpLimit - usedXp
+}
+// /src/utils/calculateEncounterFields.js
+
+export function calculateEncounterFields(baseEncounter, campaign) {
+  // Here, you can call your existing generateEncounterData if you like,
+  // or re-use some of the logic from encounterDataGenerator directly.
+  // This example just calls that function to produce derived data:
+
+  // Because generateEncounterData expects (currentCampaign, encounters),
+  // you might adapt it slightly for a single encounter instance.
+  // For demonstration, let's assume the baseEncounter has an array of "encountersSoFar"
+  // or you pass in the entire array as a second parameter.
+
+  // If you're only calculating fields for one new encounter, you might
+  // pass an empty array or the existing ones. We'll do something basic here:
+
+  const derived = {
+    // For example, if your baseEncounter is missing some fields that you
+    // calculate from the campaign, add them here.
+    xpThresholdsByCharacterLevel: campaign.xpThresholds || {
+      easy: 0,
+      medium: 0,
+      hard: 0,
+      deadly: 0,
+    },
+    // Suppose you also calculate some random fields or re-check difficulty, etc.
+    // ...
+  }
+
+  return {
+    ...baseEncounter,
+    ...derived,
+  }
+}
+// src/utils/encounterUtils.js
+import { xpThresholdsByCharLvl } from '@/utils/xpTables'
+
+export const difficultyOptions = ['Easy', 'Medium', 'Hard', 'Deadly']
+
+export const terrainOptions = [
+  'Volcanic Island',
+  'Forest',
+  'Desert',
+  'Mountain',
+]
+
+export const timeOfDayOptions = ['Day', 'Night', 'Dawn', 'Dusk']
+export const weatherOptions = [
+  'Clear',
+  'Rainy',
+  'Stormy',
+  'Light Sandstorm (getting worse)',
+]
+export const objectivesOptions = [
+  'Remove all Enemies from the area',
+  'Rescue the Hostage',
+  'Defend the Base',
+]
+
+/**
+ * Pool of possible items for each map location.
+ */
+const possibleItemsPerLocation = {
+  top: [
+    'Trap - Grease Trap',
+    'Beast (Ox)',
+    "Cartographer's Station (empty)",
+    'Hidden Pitfall',
+    'Magical Barrier',
+  ],
+  left: ['Ladder, metal, 25ft telescopic', 'Rope Ladder, wooden', 'Net Trap'],
+  center: ['Levitating Stones, orbiting', 'Construct, large', 'Player Beacon'],
+  right: ['Levitating Stones, orbiting', 'Construct, large', 'Player Beacon'],
+}
+
+/**
+ * Defines the number of items each location should have.
+ */
+const numberOfItemsPerLocation = {
+  top: 3,
+  left: 1,
+  center: 3,
+  right: 3,
+}
+
+export function getRandomEncounterDifficultyOption() {
+  return difficultyOptions[Math.floor(Math.random() * difficultyOptions.length)]
+}
+
+// Simply generate the random items without adding any marker text.
+export function generateMapLocationsWithItems() {
+  const mapLocations = {}
+
+  Object.keys(possibleItemsPerLocation).forEach((location) => {
+    const possibleItems = possibleItemsPerLocation[location]
+    const numItems = numberOfItemsPerLocation[location] || 1
+    const selectedItems = []
+
+    for (let i = 0; i < numItems; i++) {
+      const randomIndex = Math.floor(Math.random() * possibleItems.length)
+      const selectedItem = possibleItems[randomIndex]
+      selectedItems.push(selectedItem)
+    }
+
+    mapLocations[location] = selectedItems
+  })
+
+  return mapLocations
+}
+
+export function getRandomOppositionStart() {
+  const options = ['Top', 'Left', 'Right']
+  return options[Math.floor(Math.random() * options.length)]
+}
+
+export function generateEncounterNumber(encounters) {
+  return encounters.length > 0
+    ? Math.max(...encounters.map((encounter) => encounter.encounterNumber)) + 1
+    : 1
+}
+
+export function generateDate() {
+  return new Date().toISOString()
+}
+
+export function getPlayers(numberOfPlayers) {
+  const players = ['Player 1', 'Player 2', 'Player 3', 'Player 4']
+  return players.slice(0, numberOfPlayers)
+}
+
+export function getXpThresholdsByCharacterLevel(level) {
+  return (
+    xpThresholdsByCharLvl[level] || {
+      easy: 0,
+      medium: 0,
+      hard: 0,
+      deadly: 0,
+    }
+  )
+}
+
+export function calculateRemainingAdventuringDayXP(
+  adventuringDayXpLimit,
+  usedXp
+) {
+  return adventuringDayXpLimit - usedXp
+}
+
+export function getRandomEncounterOppositionType() {
+  const types = ['Solo', 'Duo', 'Trio', 'Group', 'Horde']
+  return types[Math.floor(Math.random() * types.length)]
+}
+
+export function calculateEncounterExperience(
+  encounterDifficultyOption,
+  levelOfPlayerCharacters,
+  numberOfPlayers
+) {
+  // Ensure that the logic properly calculates experience based on inputs
+  const baseXP =
+    xpThresholdsByCharLvl[levelOfPlayerCharacters]?.[
+      encounterDifficultyOption.toLowerCase()
+    ]
+
+  if (!baseXP) {
+    console.error('XP Calculation Error: No base XP for difficulty')
+    return 0
+  }
+
+  if (baseXP) {
+    return baseXP * numberOfPlayers // Example logic
+  }
+
+  console.error('Failed to calculate encounter experience')
+  return 0 // Return a default value or handle the error
+}
+
+export function calculatePercentOfAdventuringDayXpRemaining(
+  adventuringDayXpLimit,
+  groupExperience
+) {
+  const xpUsed = groupExperience || 0
+  const percentRemaining =
+    ((adventuringDayXpLimit - xpUsed) / adventuringDayXpLimit) * 100
+  return Math.max(0, percentRemaining)
+}
+
+export function getRandomBoolean() {
+  return Math.random() >= 0.5
+}
+
+export function getRandomTimeBetweenEncounters() {
+  const times = ['30min', '1hr', '2hrs', '3hrs']
+  return times[Math.floor(Math.random() * times.length)]
+}
+
+export function getRandomMapTerrainType() {
+  return terrainOptions[Math.floor(Math.random() * terrainOptions.length)]
+}
+
+export function getRandomStartingQuadrant() {
+  return Math.floor(Math.random() * 4) + 1
+}
+
+export function getRandomObjectivesOfEncounter() {
+  return objectivesOptions[Math.floor(Math.random() * objectivesOptions.length)]
+}
+
+export function getRandomTimeOfDay() {
+  return timeOfDayOptions[Math.floor(Math.random() * timeOfDayOptions.length)]
+}
+
+export function getRandomWeather() {
+  return weatherOptions[Math.floor(Math.random() * weatherOptions.length)]
+}
+
+export function getRandomGoldEarned() {
+  return parseFloat((Math.random() * 100).toFixed(4))
+}
+
+export function getRandomDoesCaravanAppear() {
+  return Math.random() < 0.5
+}
+// src/utils/derivedFields.js
+export function calculateDerivedFields(campaign) {
+  const adventuringDayXpRemaining =
+    campaign.currentAdventuringDayXp || campaign.adventuringDayXpLimit
+  const percentAdventuringDayXpRemaining = (
+    (adventuringDayXpRemaining / campaign.adventuringDayXpLimit) *
+    100
+  ).toFixed(0)
+
+  const firstRestThreshold = 0.68 * campaign.adventuringDayXpLimit
+  const secondRestThreshold = 0.35 * campaign.adventuringDayXpLimit
+
+  // Safely check for `xpThresholds` and assign a default in case `easy` is undefined
+  const easyThreshold = campaign.xpThresholds?.easy ?? 500
+
+  const shortRestNeededFirst = adventuringDayXpRemaining <= firstRestThreshold
+  const shortRestNeededSecond = adventuringDayXpRemaining <= secondRestThreshold
+  const longRestNeeded = adventuringDayXpRemaining < easyThreshold
+
+  return {
+    shortRestNeededFirst,
+    shortRestNeededSecond,
+    longRestNeeded,
+    percentAdventuringDayXpRemaining,
+  }
+}
+// src/utils/encounterDataGenerator.js
+import {
+  generateEncounterNumber,
+  generateDate,
+  getPlayers,
+  getRandomEncounterDifficultyOption,
+  calculateEncounterExperience,
+  calculatePercentOfAdventuringDayXpRemaining,
+  getRandomBoolean,
+  getRandomTimeBetweenEncounters,
+  getRandomMapTerrainType,
+  getRandomStartingQuadrant,
+  getRandomObjectivesOfEncounter,
+  getRandomTimeOfDay,
+  getRandomWeather,
+  getRandomGoldEarned,
+  getRandomDoesCaravanAppear,
+  generateMapLocationsWithItems,
+} from '@/utils/encounterUtils'
+import { xpThresholdsByCharLvl } from '@/utils/xpTables'
+
+/**
+ * Generates encounter data with properly structured mapLocations.
+ *
+ * @param {Object} currentCampaign - The current campaign details.
+ * @param {Array} encounters - The list of existing encounters.
+ * @returns {Object} - The newly generated encounter data.
+ */
+export function generateEncounterData(currentCampaign, encounters) {
+  const encounterNumber = generateEncounterNumber(encounters)
+  const date = generateDate()
+  const numberOfPlayers = currentCampaign?.numberOfPlayers || 4
+  const players = getPlayers(numberOfPlayers)
+
+  const levelOfPlayerCharacters = currentCampaign?.groupLevel || 4
+
+  // Ensure players is valid
+  if (!players || players.length === 0) {
+    console.error('Players field is invalid:', players)
+    return null // Return null or handle as per your application's requirements
+  }
+
+  const xpThresholdsByCharacterLevel = xpThresholdsByCharLvl[
+    levelOfPlayerCharacters
+  ] || {
+    easy: 0,
+    medium: 0,
+    hard: 0,
+    deadly: 0,
+  }
+
+  const encounterDifficultyOption = getRandomEncounterDifficultyOption()
+  const encounterExperience = calculateEncounterExperience(
+    encounterDifficultyOption,
+    levelOfPlayerCharacters,
+    numberOfPlayers
+  )
+
+  const percentOfAdventuringDayXpRemaining =
+    calculatePercentOfAdventuringDayXpRemaining(
+      currentCampaign?.adventuringDayXpLimit || 6800,
+      currentCampaign?.groupExperience || 0
+    )
+
+  const shortRestNeededFirstOne = getRandomBoolean()
+  const shortRestNeededSecondOne = getRandomBoolean()
+  const shortRestCounter =
+    (shortRestNeededFirstOne ? 1 : 0) + (shortRestNeededSecondOne ? 1 : 0)
+  const longRestNeeded = getRandomBoolean()
+  const timeSpentResting = '-' // Placeholder or implement as needed
+  const timeBetweenEncounters = getRandomTimeBetweenEncounters()
+  const mapTerrainType = getRandomMapTerrainType()
+  const startingQuadrantOfOppositionOnMap = getRandomStartingQuadrant()
+  const objectivesOfEncounter = getRandomObjectivesOfEncounter()
+  const timeOfDay = getRandomTimeOfDay()
+  const weather = getRandomWeather()
+  const goldEarnedFromEncounter = getRandomGoldEarned()
+  const doesCaravanAppear = getRandomDoesCaravanAppear()
+  const npcTypes = ['', '', '', ''] // Initialize with empty strings or as per requirements
+
+  // Generate mapLocations as an object
+  const mapLocations = generateMapLocationsWithItems() || {}
+
+  return {
+    encounterNumber,
+    date,
+    players,
+    numberOfPlayers,
+    levelOfPlayerCharacters,
+    xpThresholdsByCharacterLevel,
+    encounterDifficultyOption,
+    encounterExperience,
+    percentOfAdventuringDayXpRemaining,
+    shortRestNeededFirstOne,
+    shortRestNeededSecondOne,
+    shortRestCounter,
+    longRestNeeded,
+    timeSpentResting,
+    timeBetweenEncounters,
+    mapTerrainType,
+    startingQuadrantOfOppositionOnMap,
+    objectivesOfEncounter,
+    timeOfDay,
+    weather,
+    goldEarnedFromEncounter,
+    doesCaravanAppear,
+    npcTypes,
+    mapLocations,
+  }
+}
+import { createApp } from 'vue'
+import './assets/index.css'
+import App from './App.vue'
+import { createPinia } from 'pinia'
+import router from './router'
+
+const app = createApp(App)
+
+app.use(router)
+app.use(createPinia())
+app.mount('#app')
+<template>
+  <div class="flex items-center border-y border-black">
+    <span class="flex-1 text-left p-1">{{ label }}</span>
+    <!-- Darker Divider with consistent spacing -->
+    <span class="w-px h-8 bg-black mx-4"></span>
+    <span class="flex-1 text-right p-1">{{ value }}</span>
+  </div>
+</template>
+
+<script setup>
+const props = defineProps({
+  label: String,
+  value: [String, Number, Boolean],
+});
+</script>
+// DataRow.cy.js
+import { mount } from "@cypress/vue";
+import DataRow from "./DataRow.vue";
+
+describe("DataRow Component", () => {
+  beforeEach(() => {
+    mount(DataRow, { props: { label: "Player Level", value: "5" } });
+  });
+
+  it("renders label and value correctly", () => {
+    cy.contains("Player Level").should("exist");
+    cy.contains("5").should("exist");
+  });
+});
+<!-- EncounterItem.vue -->
+<template>
+  <div
+    class="px-1 rounded shadow cursor-pointer border-1 bg-gray-50 border-black"
+    @click="openEditModal"
+  >
+    <div class="flex items-center border-y border-black">
+      <div class="flex-1 text-left p-1">
+        <h3 class="text-lg font-semibold">{{ encounterTitle }}</h3>
+        <p class="text-sm text-gray-600">{{ encounterDescription }}</p>
+      </div>
+      <span class="w-px h-14 bg-black mx-4"></span>
+
+      <div class="flex-1 text-right p-1">
+        <span class="text-gray-500">{{ formattedDate }}</span>
+      </div>
+    </div>
+
+    <!-- Edit Encounter Modal -->
+    <EditEncounterModal
+      v-if="isEditModalOpen"
+      :isOpen="isEditModalOpen"
+      :encounter="encounter"
+      @close="isEditModalOpen = false"
+      @update="handleUpdateEncounter"
+      @delete="handleDeleteEncounter(encounter.id)"
+    />
+  </div>
+</template>
+
+<script setup>
+import { ref, computed } from 'vue'
+import EditEncounterModal from '@/components/Organisms/EditEncounterModal/EditEncounterModal.vue'
+
+const props = defineProps({
+  encounter: {
+    type: Object,
+    required: true,
+  },
+})
+
+const emit = defineEmits(['update-encounter', 'delete-encounter'])
+
+const isEditModalOpen = ref(false)
+
+const openEditModal = () => {
+  isEditModalOpen.value = true
+}
+
+const handleUpdateEncounter = (updatedEncounter) => {
+  emit('update-encounter', updatedEncounter)
+  isEditModalOpen.value = false
+}
+
+const handleDeleteEncounter = (encounterId) => {
+  emit('delete-encounter', encounterId)
+  isEditModalOpen.value = false
+}
+
+const encounterTitle = computed(() => {
+  return `Encounter: #${props.encounter.encounterNumber || 'N/A'}`
+})
+
+const encounterDescription = computed(() => {
+  return `Encounter Adj. XP: ${
+    props.encounter.encounterAdjustedExperience || 'No data'
+  }, Encounter XP: ${props.encounter.encounterExperience || 'No data'}
+  Players: ${props.encounter.numberOfPlayers || 'N/A'}`
+})
+
+const formattedDate = computed(() => {
+  const date = new Date(props.encounter.date)
+  return date.toLocaleDateString()
+})
+</script>
+<!-- src/components/molecules/TabList.vue -->
+<template>
+  <div class="flex border-b border-gray-200" role="tablist">
+    <slot></slot>
+  </div>
+</template>
+
+<script>
+export default {
+  name: "TabList",
+};
+</script>
+<template>
+  <nav class="space-x-4">
+    <Link v-if="isAuthenticated" to="/dashboard" class="text-black"
+      >Dashboard</Link
+    >
+    <!-- Additional links can be added here -->
+  </nav>
+</template>
+
+<script setup>
+import Link from '@/components/Atoms/BaseLink/BaseLink.vue'
+
+const props = defineProps({
+  isAuthenticated: {
+    type: Boolean,
+    default: false,
+  },
+})
+</script>
+<!-- src/components/molecules/AuthButton/AuthButton.vue -->
+<template>
+  <Button :variant="variant" @click="handleAuthAction">
+    {{ isAuthenticated ? 'Logout' : 'Login' }}
+  </Button>
+</template>
+
+<script setup>
+import { useRouter } from 'vue-router'
+import Button from '@/components/Atoms/BaseButton/BaseButton.vue'
+import { useAuth } from '@/composables/useAuth'
+
+const props = defineProps({
+  variant: {
+    type: String,
+    default: 'primary',
+  },
+  isAuthenticated: {
+    type: Boolean,
+    required: true,
+  },
+})
+
+const emit = defineEmits(['login', 'logout'])
+const { login, logout } = useAuth()
+const router = useRouter() // Access the router
+
+const handleAuthAction = async () => {
+  try {
+    if (props.isAuthenticated) {
+      // If authenticated, logout
+      await logout()
+      emit('logout')
+    } else {
+      // Redirect to the login page first, then log in
+      await router.push('/login') // Adjust the route path if necessary
+      await login()
+      emit('login')
+    }
+  } catch (error) {
+    console.error('Error during authentication action:', error)
+  }
+}
+</script>
+<!-- src/components/molecules/TabPanel.vue -->
+<template>
+  <div
+    v-show="isActive"
+    :id="`panel-${id}`"
+    role="tabpanel"
+    :aria-labelledby="`tab-${id}`"
+    class="p-4"
+  >
+    <slot></slot>
+  </div>
+</template>
+
+<script>
+export default {
+  name: "TabPanel",
+  props: {
+    id: {
+      type: String,
+      required: true,
+    },
+    isActive: {
+      type: Boolean,
+      default: false,
+    },
+  },
+};
+</script>
+<!-- ConfirmationModal.vue (After) -->
+<template>
+  <BaseModal :isOpen="isOpen" :title="title" @close="onCancel">
+    <!-- Modal BODY -->
+    <Paragraph :text="message" class="mb-4" />
+
+    <!-- Modal FOOTER (slot="footer") -->
+    <template #footer>
+      <div class="flex space-x-4">
+        <Button variant="secondary" @click="onCancel">Cancel</Button>
+        <Button variant="danger" @click="onConfirm">Confirm</Button>
+      </div>
+    </template>
+  </BaseModal>
+</template>
+
+<script setup>
+import BaseModal from '@/components/Atoms/BaseModal/BaseModal.vue'
+import Paragraph from '@/components/Atoms/BaseParagraph/BaseParagraph.vue'
+import Button from '@/components/Atoms/BaseButton/BaseButton.vue'
+
+const props = defineProps({
+  isOpen: { type: Boolean, required: true },
+  title: { type: String, default: 'Confirm Action' },
+  message: { type: String, required: true },
+})
+const emit = defineEmits(['confirm', 'cancel'])
+
+function onConfirm() {
+  emit('confirm')
+}
+function onCancel() {
+  emit('cancel')
+}
+</script>
+<template>
+  <div class="mb-1">
+    <label :for="id" class="block text-sm font-medium text-gray-700">
+      {{ label }}
+    </label>
+    <select
+      :id="id"
+      :value="modelValue"
+      @input="$emit('update:modelValue', $event.target.value)"
+      class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md"
+    >
+      <option disabled value="">{{ placeholder }}</option>
+      <option
+        v-for="option in options"
+        :key="option.value"
+        :value="option.value"
+      >
+        {{ option.label }}
+      </option>
+    </select>
+  </div>
+</template>
+
+<script setup>
+const props = defineProps({
+  modelValue: [String, Number],
+  label: {
+    type: String,
+    required: true,
+  },
+  options: {
+    type: Array,
+    required: true,
+    default: () => [],
+  },
+  placeholder: {
+    type: String,
+    default: 'Please select an option',
+  },
+  id: {
+    type: String,
+    default: () => `select-${Math.random().toString(36).substr(2, 9)}`,
+  },
+})
+
+const emit = defineEmits(['update:modelValue'])
+</script>
+<!-- src/components/atoms/CaravanContent.vue -->
+<template>
+  <div>
+    <InputField
+      v-model="localEncounterData.caravanSize"
+      label="Caravan Size"
+      type="number"
+    />
+    <!-- Add more Caravan-related fields here if necessary -->
+  </div>
+</template>
+
+<script setup>
+import { reactive, watch } from 'vue'
+import InputField from '@/components/Atoms/BaseInput/BaseInput.vue'
+
+// Define props
+const props = defineProps({
+  encounterData: {
+    type: Object,
+    required: true,
+  },
+})
+
+// Define emits
+const emit = defineEmits(['update:encounterData'])
+
+// Create a reactive local copy of encounterData
+const localEncounterData = reactive({ ...props.encounterData })
+
+// Watch for changes in localEncounterData and emit updates
+watch(
+  () => ({ ...localEncounterData }),
+  (newData) => {
+    emit('update:encounterData', newData)
+  },
+  { deep: true }
+)
+</script>
+// Heading.cy.js
+import { mount } from "@cypress/vue";
+import Heading from "./Heading.vue";
+
+describe("Heading Component", () => {
+  beforeEach(() => {
+    mount(Heading, { props: { title: "Test Title", level: "1" } });
+  });
+
+  it("renders the heading with the correct title", () => {
+    cy.contains("Test Title").should("exist");
+  });
+
+  it("applies correct class based on level prop", () => {
+    cy.get("h2")
+      .should("have.class", "text-2xl")
+      .and("have.class", "font-bold");
+  });
+});
+<template>
+  <h2 :class="headingClass">{{ title }}</h2>
+</template>
+
+<script setup>
+import { computed } from "vue";
+
+const props = defineProps({
+  title: String,
+  level: {
+    type: String,
+    default: "2", // Can accept '1', '2', '3', etc., for heading levels
+  },
+});
+
+const headingClass = computed(() => {
+  switch (props.level) {
+    case "1":
+      return "text-2xl font-bold mb-2";
+    case "3":
+      return "text-md font-semibold mb-1";
+    default:
+      return "text-lg font-bold mb-2";
+  }
+});
+</script>
+<!-- src/components/atoms/TabButton.vue -->
+<template>
+  <button
+    type="button"
+    :class="buttonClasses"
+    @click="activate"
+    role="tab"
+    :aria-selected="isActive.toString()"
+    :aria-controls="`panel-${id}`"
+    :id="`tab-${id}`"
+    tabindex="0"
+    data-cy="button"
+  >
+    <slot></slot>
+  </button>
+</template>
+
+<script>
+export default {
+  name: "TabButton",
+  props: {
+    id: {
+      type: String,
+      required: true,
+    },
+    isActive: {
+      type: Boolean,
+      default: false,
+    },
+    // Removed variant prop as we're simplifying to two styles
+    loading: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  emits: ["activate"],
+  computed: {
+    buttonClasses() {
+      // Define two styles: active and inactive
+      const activeClasses =
+        "px-4 py-2 border-b-2 text-blue-500 border-blue-500 font-bold focus:outline-none";
+      const inactiveClasses =
+        "px-4 py-2 border-b-2 border-transparent text-gray-400 hover:text-blue-500 focus:outline-none";
+      const loadingClasses = this.loading
+        ? "opacity-70 cursor-not-allowed"
+        : "";
+
+      return this.isActive
+        ? `${activeClasses} ${loadingClasses}`
+        : `${inactiveClasses} ${loadingClasses}`;
+    },
+  },
+  methods: {
+    activate() {
+      if (!this.loading) {
+        this.$emit("activate", this.id);
+      }
+    },
+  },
+};
+</script>
+// LabelText.cy.js
+import { mount } from "@cypress/vue";
+import LabelText from "./LabelText.vue";
+
+describe("LabelText Component", () => {
+  beforeEach(() => {
+    mount(LabelText, { props: { text: "Label Example", size: "lg" } });
+  });
+
+  it("renders the label text correctly", () => {
+    cy.contains("Label Example").should("exist");
+  });
+
+  it("applies correct class based on size prop", () => {
+    cy.get("span").should("have.class", "text-lg");
+  });
+});
+<template>
+  <span :class="textClass">{{ text }}</span>
+</template>
+
+<script setup>
+import { computed } from "vue";
+
+const props = defineProps({
+  text: String,
+  size: {
+    type: String,
+    default: "base", // Other options could be 'sm', 'lg' for example
+  },
+});
+
+const textClass = computed(() => {
+  switch (props.size) {
+    case "sm":
+      return "text-sm";
+    case "lg":
+      return "text-lg";
+    default:
+      return "text-base";
+  }
+});
+</script>
+<template>
+  <button
+    :type="type"
+    :class="buttonClasses"
+    @click="handleClick"
+    :disabled="loading"
+    data-cy="button"
+  >
+    <div class="flex items-center justify-center space-x-2">
+      <svg
+        v-if="loading"
+        class="animate-spin h-5 w-5 text-white"
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+      >
+        <circle
+          class="opacity-25"
+          cx="12"
+          cy="12"
+          r="10"
+          stroke="currentColor"
+          stroke-width="4"
+        ></circle>
+        <path
+          class="opacity-75"
+          fill="currentColor"
+          d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+        ></path>
+      </svg>
+      <span v-if="!loading"><slot /></span>
+    </div>
+  </button>
+</template>
+
+<script setup>
+import { computed } from 'vue'
+
+const props = defineProps({
+  type: {
+    type: String,
+    default: 'button',
+  },
+  variant: {
+    type: String,
+    default: 'primary',
+  },
+  loading: {
+    type: Boolean,
+    default: false,
+  },
+})
+
+const emit = defineEmits(['click'])
+
+const handleClick = () => {
+  console.log('BaseButton handleClick triggered')
+
+  if (!props.loading) {
+    emit('click') // Emit click event only if not loading
+  }
+}
+
+const buttonClasses = computed(() => {
+  const baseClasses =
+    'px-3 py-2 transition duration-300 ease-in-out flex items-center justify-center rounded'
+
+  const variantClasses = (() => {
+    switch (props.variant) {
+      case 'primary':
+        return 'bg-blue-500 text-white hover:bg-blue-700'
+      case 'secondary':
+        return 'bg-gray-500 text-white hover:bg-gray-700'
+      case 'primaryOutlined':
+        return 'border text-blue-500 hover:bg-blue-100'
+      case 'danger':
+        return 'bg-red-500 text-white hover:bg-red-700'
+      default:
+        return ''
+    }
+  })()
+
+  const loadingClasses = props.loading ? 'opacity-70 cursor-not-allowed' : ''
+
+  return `${baseClasses} ${variantClasses} ${loadingClasses}`
+})
+</script>
+// src/components/atoms/Button/Button.cy.js
+
+import { mount } from "@cypress/vue";
+import Button from "./Button.vue";
+
+describe("Button Component", () => {
+  it("renders correctly with primary variant", () => {
+    mount(Button, {
+      props: { variant: "primary" },
+      slots: {
+        default: "Primary Button",
+      },
+    });
+    cy.get('[data-cy="button"]')
+      .should("have.class", "bg-blue-500")
+      .and("have.class", "text-white");
+  });
+
+  it("renders correctly with secondary variant", () => {
+    mount(Button, {
+      props: { variant: "secondary" },
+      slots: {
+        default: "Secondary Button",
+      },
+    });
+    cy.get('[data-cy="button"]')
+      .should("have.class", "bg-gray-500")
+      .and("have.class", "text-white");
+  });
+
+  it("renders correctly with primaryOutlined variant", () => {
+    mount(Button, {
+      props: { variant: "primaryOutlined" },
+      slots: {
+        default: "Outlined Button",
+      },
+    });
+    cy.get('[data-cy="button"]')
+      .should("have.class", "border")
+      .and("have.class", "text-blue-500");
+  });
+
+  it("displays spinner when loading is true", () => {
+    mount(Button, {
+      props: { loading: true, variant: "primary" },
+      slots: {
+        default: "Primary Button",
+      },
+    });
+    cy.get('[data-cy="button"]').should("have.class", "opacity-70");
+    cy.get("svg.animate-spin").should("exist");
+    cy.get("span").should("not.exist"); // Text should be hidden when loading
+  });
+
+  it("emits click event when clicked", () => {
+    mount(Button, {
+      props: { loading: false },
+      slots: {
+        default: "Clickable Button",
+      },
+    }).then(({ wrapper }) => {
+      cy.get('[data-cy="button"]')
+        .click()
+        .then(() => {
+          const emittedEvents = wrapper.emitted("click");
+          expect(emittedEvents).to.have.length(1); // Expecting exactly one click event to have been emitted
+        });
+    });
+  });
+});
+<template>
+  <router-link :to="to" class="hover:underline">
+    <slot />
+  </router-link>
+</template>
+
+<script setup>
+const props = defineProps({
+  to: {
+    type: String,
+    required: true,
+  },
+});
+</script>
+<template>
+  <div class="mb-4">
+    <label v-if="label" class="block text-gray-700 text-sm font-bold mb-1">
+      {{ label }}
+    </label>
+    <input
+      :type="type"
+      :placeholder="placeholder"
+      :value="modelValue"
+      @input="$emit('update:modelValue', $event.target.value)"
+      class="w-full p-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
+    />
+    <p v-if="error" class="text-red-500 text-xs italic">{{ error }}</p>
+  </div>
+</template>
+
+<script setup>
+const props = defineProps({
+  modelValue: [String, Number],
+  label: String,
+  placeholder: String,
+  type: {
+    type: String,
+    default: "text",
+  },
+  error: String,
+});
+</script>
+// Paragraph.cy.js
+import { mount } from "@cypress/vue";
+import Paragraph from "./Paragraph.vue";
+
+describe("Paragraph Component", () => {
+  beforeEach(() => {
+    mount(Paragraph, {
+      props: {
+        text: "Sample text",
+        size: "sm",
+      },
+    });
+  });
+
+  it("renders the paragraph with the correct text", () => {
+    cy.contains("Sample text").should("exist");
+  });
+
+  it("applies correct class based on size prop", () => {
+    cy.get("p").should("have.class", "text-sm");
+  });
+});
+<template>
+  <p :class="textClass">{{ text }}</p>
+</template>
+
+<script setup>
+import { computed } from "vue";
+
+const props = defineProps({
+  text: String,
+  size: {
+    type: String,
+    default: "base", // Options could include 'sm', 'lg' for example
+  },
+});
+
+const textClass = computed(() => {
+  switch (props.size) {
+    case "sm":
+      return "text-sm";
+    case "lg":
+      return "text-lg";
+    default:
+      return "text-base";
+  }
+});
+</script>
+<!-- src/components/atoms/MapDetailsContent.vue (After Updated) -->
+<script setup>
+import { reactive, watch, ref, onMounted } from 'vue'
+import SelectField from '@/components/Atoms/BaseSelect/BaseSelect.vue'
+
+// Options for the opposition marker
+const oppositionLocationOptions = [
+  { value: 'None', label: 'None' },
+  { value: 'Top', label: 'Top' },
+  { value: 'Left', label: 'Left' },
+  { value: 'Right', label: 'Right' },
+]
+
+const props = defineProps({
+  encounterData: { type: Object, required: true },
+  terrainOptions: { type: Array, required: true },
+  timeOfDayOptions: { type: Array, required: true },
+  weatherOptions: { type: Array, required: true },
+  objectivesOptions: { type: Array, required: true },
+})
+const emit = defineEmits(['update:encounterDetails'])
+
+// Build a local copy from the encounterData without overwriting mapLocations.
+// Also include npcTypes (an array of 4 strings).
+const localMapData = reactive({
+  mapTerrainType: props.encounterData.mapTerrainType || '',
+  timeOfDay: props.encounterData.timeOfDay || '',
+  weather: props.encounterData.weather || '',
+  objectivesOfEncounter: props.encounterData.objectivesOfEncounter || '',
+  // Expecting this to contain only random items (generated elsewhere)
+  mapLocations: props.encounterData.mapLocations || {},
+  // Store the marker separately. Default to "None" if not provided.
+  oppositionStartLocation:
+    props.encounterData.oppositionStartLocation || 'None',
+  // NPC Types: an array of 4 text values.
+  npcTypes: props.encounterData.npcTypes || ['', '', '', ''],
+})
+
+// Create a ref to control the opposition marker (this does not affect the items)
+const oppositionStartLocation = ref(localMapData.oppositionStartLocation)
+
+// Update the marker field when the select changes
+watch(oppositionStartLocation, (newVal) => {
+  localMapData.oppositionStartLocation = newVal
+})
+
+// Emit changes whenever localMapData changes so the parent (and firebase store) stays in sync.
+watch(
+  () => localMapData,
+  (newData) => {
+    emit('update:encounterDetails', { ...newData })
+  },
+  { deep: true }
+)
+
+// Optionally, if the marker is not set (i.e. "None"), randomize it on mount.
+onMounted(() => {
+  if (localMapData.oppositionStartLocation === 'None') {
+    const randomOpp = ['Top', 'Left', 'Right'][Math.floor(Math.random() * 3)]
+    oppositionStartLocation.value = randomOpp
+  }
+})
+</script>
+
+<template>
+  <div class="space-y-4 p-4">
+    <!-- NPC Types Inputs -->
+    <div class="mt-4">
+      <h4 class="mb-2 font-semibold">NPC Types</h4>
+      <div class="grid grid-cols-2 gap-4">
+        <div
+          v-for="(npc, index) in localMapData.npcTypes"
+          :key="index"
+          class="flex space-x-2 items-center"
+        >
+          <label class="block text-sm font-medium text-gray-700 mb-1"
+            >NPC&nbsp;{{ index + 1 }}</label
+          >
+          <input
+            type="text"
+            v-model="localMapData.npcTypes[index]"
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          />
+        </div>
+      </div>
+    </div>
+
+    <h4 class="mb-2 font-semibold">Map Locations</h4>
+
+    <!-- Basic Map Details Selects -->
+    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+      <SelectField
+        v-model="localMapData.mapTerrainType"
+        label="Map Terrain Type"
+        :options="terrainOptions"
+      />
+      <SelectField
+        v-model="localMapData.timeOfDay"
+        label="Time of Day"
+        :options="timeOfDayOptions"
+      />
+      <SelectField
+        v-model="localMapData.weather"
+        label="Weather"
+        :options="weatherOptions"
+      />
+      <SelectField
+        v-model="localMapData.objectivesOfEncounter"
+        label="Objectives"
+        :options="objectivesOptions"
+      />
+    </div>
+
+    <!-- Diamond Layout for Map Locations -->
+    <div class="mt-4 flex flex-col items-center bg-black p-8">
+      <!-- Top Row -->
+      <div class="w-full flex justify-center">
+        <div class="w-1/2 border p-2 text-center relative bg-white">
+          <div class="flex flex-col items-center justify-center">
+            <p v-for="(item, i) in localMapData.mapLocations.top" :key="i">
+              {{ item }}
+            </p>
+          </div>
+          <div
+            v-if="localMapData.oppositionStartLocation === 'Top'"
+            class="flex items-center justify-center bg-black bg-opacity-50 text-white"
+          >
+            OPPOSITION START
+          </div>
+        </div>
+      </div>
+
+      <!-- Middle Row: Left and Right -->
+      <div class="w-full flex justify-between mt-4">
+        <!-- Left -->
+        <div class="w-1/2 border p-2 text-center relative bg-white">
+          <div class="flex flex-col items-center justify-center">
+            <p v-for="(item, i) in localMapData.mapLocations.left" :key="i">
+              {{ item }}
+            </p>
+          </div>
+          <div
+            v-if="localMapData.oppositionStartLocation === 'Left'"
+            class="flex items-center justify-center bg-black bg-opacity-50 text-white"
+          >
+            OPPOSITION START
+          </div>
+        </div>
+        <!-- Right -->
+        <div class="w-1/2 border p-2 text-center relative bg-white">
+          <div class="flex flex-col items-center justify-center">
+            <p v-for="(item, i) in localMapData.mapLocations.right" :key="i">
+              {{ item }}
+            </p>
+          </div>
+          <div
+            v-if="localMapData.oppositionStartLocation === 'Right'"
+            class="flex items-center justify-center bg-black bg-opacity-50 text-white"
+          >
+            OPPOSITION START
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Row: Center -->
+      <div class="w-full flex justify-center mt-4 relative">
+        <div class="w-1/2 border p-2 text-center bg-white">
+          <div class="flex flex-col items-center justify-center">
+            <p v-for="(item, i) in localMapData.mapLocations.center" :key="i">
+              {{ item }}
+            </p>
+          </div>
+          <!-- Always overlay a single "GROUP START" marker on center -->
+          <div
+            class="flex items-center justify-center bg-blue-500 bg-opacity-50 text-white"
+          >
+            GROUP START
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+<!-- BaseModal.vue (After) -->
+<template>
+  <div
+    v-if="isOpen"
+    class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center"
+    @click="closeModal"
+  >
+    <div
+      :class="[
+        'bg-white p-4 rounded-lg relative overflow-y-auto',
+        modalSizeClass,
+      ]"
+      @click.stop
+    >
+      <!-- Close Button -->
+      <button
+        @click="closeModal"
+        class="absolute top-2 right-2 text-gray-600 hover:text-gray-800 text-2xl"
+      >
+        &times;
+      </button>
+
+      <!-- Title -->
+      <h2 v-if="title" class="mb-4 text-lg font-semibold">
+        {{ title }}
+      </h2>
+
+      <!-- Scrollable Content Wrapper -->
+      <div class="max-h-[70vh] overflow-y-auto">
+        <slot />
+      </div>
+
+      <!-- Footer Slot -->
+      <div class="mt-4">
+        <slot name="footer" />
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { computed } from 'vue'
+
+const props = defineProps({
+  isOpen: { type: Boolean, default: false },
+  title: { type: String, default: '' },
+  size: {
+    type: String,
+    default: 'default',
+    validator: (val) => ['default', 'large'].includes(val),
+  },
+})
+const emit = defineEmits(['close'])
+
+function closeModal() {
+  emit('close')
+}
+
+const modalSizeClass = computed(() => {
+  return props.size === 'large'
+    ? 'max-w-[95vw] w-full max-h-[90vh]'
+    : 'max-w-md w-full'
+})
+</script>
+<!-- src/components/atoms/XPDetailsContent.vue -->
+<template>
+  <div class="p-4">
+    <h3 class="text-xl font-semibold mb-4">XP &amp; Difficulty Details</h3>
+    <div class="space-y-4 grid grid-cols-4 gap-4">
+      <!-- Difficulty Select -->
+      <SelectField
+        v-model="localData.encounterDifficultyOption"
+        label="Difficulty"
+        :options="difficultyOptions"
+      />
+      <!-- Number of Players Select -->
+      <SelectField
+        v-model="localData.numberOfPlayers"
+        label="Number of Players"
+        :options="numberOfPlayersOptions"
+      />
+      <!-- Encounter XP as Input Number -->
+      <div>
+        <label class="block text-gray-700 font-bold mb-1">Encounter XP</label>
+        <input
+          type="number"
+          v-model.number="localData.encounterExperience"
+          class="border border-gray-300 rounded p-2 w-full"
+        />
+      </div>
+      <!-- Adjusted XP as Input Number -->
+      <div>
+        <label class="block text-gray-700 font-bold mb-1">Adjusted XP</label>
+        <input
+          type="number"
+          v-model.number="localData.encounterAdjustedExperience"
+          class="border border-gray-300 rounded p-2 w-full"
+        />
+      </div>
+      <!-- XP Thresholds (read-only text) -->
+      <div>
+        <label class="block text-gray-700 font-bold mb-2">XP Thresholds</label>
+        <ul class="list-disc ml-4">
+          <li
+            v-for="(value, key) in localData.xpThresholdsByCharacterLevel"
+            :key="key"
+          >
+            <span class="capitalize">{{ key }}:</span> {{ value }}
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { reactive, watch } from 'vue'
+import SelectField from '@/components/Atoms/BaseSelect/BaseSelect.vue'
+
+const props = defineProps({
+  encounterData: {
+    type: Object,
+    required: true,
+  },
+})
+const emit = defineEmits(['update:encounterData'])
+
+// Create a reactive copy of the encounter data (with fallback for thresholds)
+const localData = reactive({
+  ...props.encounterData,
+  xpThresholdsByCharacterLevel: props.encounterData
+    .xpThresholdsByCharacterLevel || { easy: 0, medium: 0, hard: 0, deadly: 0 },
+})
+
+// Options arrays
+const difficultyOptions = [
+  { value: 'Easy', label: 'Easy' },
+  { value: 'Medium', label: 'Medium' },
+  { value: 'Hard', label: 'Hard' },
+  { value: 'Deadly', label: 'Deadly' },
+]
+
+const numberOfPlayersOptions = Array.from({ length: 8 }, (_, i) => ({
+  value: i + 1,
+  label: (i + 1).toString(),
+}))
+
+// Emit any changes on localData update
+watch(
+  () => ({ ...localData }),
+  (newData) => {
+    emit('update:encounterData', newData)
+  },
+  { deep: true }
+)
+</script>
+<!-- src/components/modals/EditEncounterModal.vue (After) -->
+<template>
+  <Modal
+    :isOpen="isOpen"
+    title="Edit Encounter"
+    size="large"
+    @close="closeModal"
+  >
+    <form @submit.prevent="handleSubmit">
+      <!-- Wrap content in a scrollable container -->
+      <div class="max-h-[90vh] overflow-y-auto">
+        <div class="grid grid-cols-1 gap-4">
+          {{ encounterData }}
+          <Tabs
+            :tabs="tabs"
+            :encounterData="encounterData"
+            @update:mapLocations="
+              (newMapLocations) =>
+                (encounterData.mapLocations = newMapLocations)
+            "
+            @update:encounterDetails="
+              (newDetails) => Object.assign(encounterData, newDetails)
+            "
+          />
+        </div>
+      </div>
+
+      <div class="flex justify-between mt-6">
+        <Button
+          type="button"
+          variant="danger"
+          @click="handleDelete"
+          :loading="isDeleting"
+        >
+          Delete Encounter
+        </Button>
+        <Button type="submit" variant="primary" :loading="isSubmitting">
+          Save Changes
+        </Button>
+      </div>
+    </form>
+  </Modal>
+</template>
+
+<script setup>
+import { ref, watch, reactive } from 'vue'
+import Modal from '@/components/Atoms/BaseModal/BaseModal.vue'
+import Button from '@/components/Atoms/BaseButton/BaseButton.vue'
+import CaravanContent from '@/components/Atoms/CaravanContent/CaravanContent.vue'
+import MapDetailsContent from '@/components/Atoms/MapDetailsContent/MapDetailsContent.vue'
+import XPDetailsContent from '@/components/Atoms/XPDetailsContent/XPDetailsContent.vue'
+import Tabs from '@/components/Organisms/BaseTabs/BaseTabs.vue'
+
+import {
+  difficultyOptions,
+  terrainOptions,
+  timeOfDayOptions,
+  weatherOptions,
+  objectivesOptions,
+  generateMapLocationsWithItems,
+} from '@/utils/encounterUtils'
+
+const props = defineProps({
+  isOpen: {
+    type: Boolean,
+    required: true,
+  },
+  encounter: {
+    type: Object,
+    required: true,
+  },
+})
+
+const emit = defineEmits(['close', 'update', 'delete'])
+
+const encounterData = reactive({ ...props.encounter })
+const isSubmitting = ref(false)
+const isDeleting = ref(false)
+
+const difficultyOptionsUnwrapped = difficultyOptions.map((value) => ({
+  value,
+  label: value,
+}))
+
+const terrainOptionsUnwrapped = terrainOptions.map((value) => ({
+  value,
+  label: value,
+}))
+const timeOfDayOptionsUnwrapped = timeOfDayOptions.map((value) => ({
+  value,
+  label: value,
+}))
+const weatherOptionsUnwrapped = weatherOptions.map((value) => ({
+  value,
+  label: value,
+}))
+const objectivesOptionsUnwrapped = objectivesOptions.map((value) => ({
+  value,
+  label: value,
+}))
+
+const possibleItemsPerLocation = {
+  MAP: [
+    'Trap - Grease Trap',
+    'Beast (Ox)',
+    "Cartographer's Station (empty)",
+    'Hidden Pitfall',
+    'Magical Barrier',
+  ],
+  'Suspended Cage': [
+    'Ladder, metal, 25ft telescopic',
+    'Rope Ladder, wooden',
+    'Net Trap',
+  ],
+  'Carnival Tent': ['Backpack (empty)', 'Storage Chest', 'Magic Mirror'],
+  'OPPOSITION START': [
+    'Hot Air Balloon, tethered, unoccupied',
+    'Ambush Point',
+    'Scout Tower',
+  ],
+  Den: ['Fountain (holy water)', 'Den (empty)', 'Alchemy Lab'],
+  'Cannon, gunpowder loaded': [
+    'Levitating Stones, orbiting',
+    'Cannon Ball Rack',
+    'Gunpowder Keg',
+  ],
+  Construct: ['Construct, large', 'Guard Construct', 'Repair Station'],
+  'Time-Worn Reliquary, sacred contents': [
+    'Ancient Tome',
+    'Sacred Relic',
+    'Mystic Artifact',
+  ],
+  'PLAYER START': [
+    'Levitating Stones, orbiting',
+    'Construct, large',
+    'Player Beacon',
+  ],
+}
+
+const tabs = [
+  {
+    id: 'xp-details',
+    label: 'XP Details',
+    component: XPDetailsContent,
+    props: {
+      encounterData, // your reactive encounterData object
+    },
+    variant: 'danger',
+    loading: false,
+  },
+  {
+    id: 'map-details',
+    label: 'Map Details',
+    component: MapDetailsContent,
+    props: {
+      encounterData, // pass the entire encounterData
+      terrainOptions: terrainOptionsUnwrapped, // e.g., [ { value: 'Desert', label: 'Desert' }, ... ]
+      timeOfDayOptions: timeOfDayOptionsUnwrapped,
+      weatherOptions: weatherOptionsUnwrapped,
+      objectivesOptions: objectivesOptionsUnwrapped,
+    },
+    variant: 'primaryOutlined',
+    loading: false,
+  },
+  {
+    id: 'caravan',
+    label: 'Caravan',
+    component: CaravanContent,
+    props: {
+      encounterData,
+    },
+    variant: 'primary',
+    loading: false,
+  },
+]
+
+function updateEncounterData(newData) {
+  Object.assign(encounterData, newData)
+}
+
+if (
+  !encounterData.mapLocations ||
+  Object.keys(encounterData.mapLocations).length === 0
+) {
+  encounterData.mapLocations = generateMapLocationsWithItems()
+}
+
+watch(
+  () => props.encounter,
+  (newEncounter) => {
+    Object.assign(encounterData, newEncounter)
+    if (!Array.isArray(encounterData.npcTypes)) {
+      encounterData.npcTypes = ['', '', '', '']
+    }
+    if (
+      !encounterData.mapLocations ||
+      Object.keys(encounterData.mapLocations).length === 0
+    ) {
+      encounterData.mapLocations = generateMapLocationsWithItems() || {}
+    }
+  },
+  { immediate: true }
+)
+
+const closeModal = () => {
+  emit('close')
+}
+
+const handleSubmit = async () => {
+  isSubmitting.value = true
+  try {
+    emit('update', { ...encounterData })
+  } catch (error) {
+    console.error('Update failed:', error)
+  } finally {
+    isSubmitting.value = false
+    closeModal()
+  }
+}
+
+const handleDelete = async () => {
+  isDeleting.value = true
+  try {
+    await emit('delete', encounterData.encounterNumber)
+  } catch (error) {
+    console.error('Delete failed:', error)
+  } finally {
+    isDeleting.value = false
+    closeModal()
+  }
+}
+</script>
+<template>
+  <header class="bg-white p-4 flex justify-between items-center text-white">
+    <div class="flex items-center space-x-4">
+      <Link to="/" class="text-lg font-bold">
+        <img
+          src="@/assets/conquest-logo.jpg"
+          class="h-auto max-w-full w-12 sm:w-16 hover:drop-shadow-lg transition duration-300 object-contain"
+          alt="Vue logo"
+      /></Link>
+      <Navigation :isAuthenticated="isAuthenticated" />
+    </div>
+    <!-- Show Login Button if not authenticated -->
+    <Button variant="primary" @click="handleLogin" v-if="!isAuthenticated">
+      Login
+    </Button>
+    <!-- Show AuthButton component with logout option if authenticated -->
+    <AuthButton
+      :isAuthenticated="isAuthenticated"
+      @logout="handleLogout"
+      v-else
+    />
+  </header>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import Button from '@/components/Atoms/BaseButton/BaseButton.vue'
+import Navigation from '@/components/Molecules/BaseNavigation/BaseNavigation.vue'
+import AuthButton from '@/components/Molecules/AuthButton/AuthButton.vue'
+import Link from '@/components/Atoms/BaseLink/BaseLink.vue'
+import { onAuthStateChanged, signOut } from 'firebase/auth'
+import { auth } from '@/firebase/firebaseConfig'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+const isAuthenticated = ref(false)
+
+// Listen to auth state changes to update the isAuthenticated status
+onAuthStateChanged(auth, (user) => {
+  isAuthenticated.value = !!user
+  if (!user) {
+    // Redirect to /login if the user is not authenticated
+    router.push('/login')
+  }
+})
+
+const handleLogin = () => {
+  router.push('/login')
+}
+
+const handleLogout = async () => {
+  try {
+    await signOut(auth)
+    console.log('User logged out successfully')
+    router.push('/login')
+  } catch (error) {
+    console.error('Logout failed:', error.message)
+  }
+}
+</script>
+<template>
+  <div class="mb-4 border-2 shadow-sm bg-gray-50 border-black">
+    <div>
+      <LabelText :text="title" class="pl-2 font-bold" />
+
+      <DataRow
+        v-for="(item, index) in items"
+        :key="index"
+        :label="item.label"
+        :value="item.value"
+      />
+    </div>
+  </div>
+</template>
+
+<script setup>
+import LabelText from '@/components/Atoms/BaseLabel/BaseLabel.vue'
+import DataRow from '@/components/Molecules/DataRow/DataRow.vue'
+
+const props = defineProps({
+  title: String,
+  items: Array, // { label: String, value: [String, Number, Boolean] }[]
+})
+</script>
+// DataSection.cy.js
+import { mount } from "@cypress/vue";
+import DataSection from "./DataSection.vue";
+
+describe("DataSection Component", () => {
+  const items = [
+    { label: "Player Level", value: "5" },
+    { label: "Experience", value: "100" },
+  ];
+
+  beforeEach(() => {
+    mount(DataSection, { props: { title: "Player Stats", items } });
+  });
+
+  it("renders section title", () => {
+    cy.contains("Player Stats").should("exist");
+  });
+
+  it("renders each DataRow item", () => {
+    items.forEach((item) => {
+      cy.contains(item.label).should("exist");
+      cy.contains(item.value).should("exist");
+    });
+  });
+});
+<!-- AddCampaignModal.vue -->
+<template>
+  <BaseModal :isOpen="isOpen" title="Add New Campaign" @close="closeModal">
+    <form @submit.prevent="handleSubmit" class="space-y-2">
+      <div>
+        <!-- Campaign Name -->
+        <InputField
+          v-model="campaignName"
+          label="Campaign Name"
+          placeholder="Enter campaign name"
+        />
+        <p v-if="errors.campaignName" class="text-red-600 text-sm -mt-3 mb-1">
+          {{ errors.campaignName }}
+        </p>
+      </div>
+      <div>
+        <!-- Description -->
+        <InputField
+          v-model="description"
+          label="Description"
+          placeholder="Enter description"
+        />
+        <p v-if="errors.description" class="text-red-600 text-sm -mt-3 mb-1">
+          {{ errors.description }}
+        </p>
+      </div>
+
+      <div>
+        <!-- Starting XP -->
+        <InputField
+          v-model="startXp"
+          label="Starting Experience"
+          type="number"
+          placeholder="0"
+        />
+        <p v-if="errors.startXp" class="text-red-600 text-sm -mt-3 mb-1">
+          {{ errors.startXp }}
+        </p>
+      </div>
+
+      <Button :loading="isSubmitting" variant="primary" class="w-full mt-4">
+        Add Campaign
+      </Button>
+    </form>
+  </BaseModal>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import InputField from '@/components/Atoms/BaseInput/BaseInput.vue'
+import BaseModal from '@/components/Atoms/BaseModal/BaseModal.vue'
+import Button from '@/components/Atoms/BaseButton/BaseButton.vue'
+
+// Props and emits
+const props = defineProps({
+  isOpen: { type: Boolean, default: false },
+})
+
+const emit = defineEmits(['close', 'submit'])
+
+// Form fields
+const campaignName = ref('')
+const description = ref('')
+const startXp = ref(0)
+const isSubmitting = ref(false)
+
+// Errors object
+const errors = ref({
+  campaignName: '',
+  description: '',
+  startXp: '',
+})
+
+/**
+ * Validate form fields and fill the errors object if any are invalid.
+ * Return true if all fields are valid.
+ */
+function validateForm() {
+  // Clear old errors
+  errors.value = {
+    campaignName: '',
+    description: '',
+    startXp: '',
+  }
+
+  let isValid = true
+
+  if (!campaignName.value.trim()) {
+    errors.value.campaignName = 'Campaign name is required.'
+    isValid = false
+  }
+  if (!description.value.trim()) {
+    errors.value.description = 'Description is required.'
+    isValid = false
+  }
+  if (startXp.value === '' || startXp.value === null) {
+    errors.value.startXp = 'Starting experience is required.'
+    isValid = false
+  } else if (startXp.value < 0) {
+    errors.value.startXp = 'Starting experience cannot be negative.'
+    isValid = false
+  }
+
+  return isValid
+}
+
+function handleSubmit() {
+  if (!validateForm()) return
+
+  isSubmitting.value = true
+
+  // Emit your new campaign data up to the parent
+  emit('submit', {
+    campaignName: campaignName.value,
+    description: description.value,
+    startXp: startXp.value,
+  })
+
+  isSubmitting.value = false
+  closeModal()
+}
+
+function closeModal() {
+  emit('close')
+  resetForm()
+}
+
+function resetForm() {
+  campaignName.value = ''
+  description.value = ''
+  startXp.value = 0
+  errors.value = {
+    campaignName: '',
+    description: '',
+    startXp: '',
+  }
+}
+</script>
+<!-- src/components/EditCampaignModal.vue -->
+<template>
+  <BaseModal :isOpen="isOpen" title="Edit Campaign" @close="closeModal">
+    <form @submit.prevent="handleSubmit">
+      <InputField
+        v-model="campaignName"
+        label="Campaign Name"
+        placeholder="Enter campaign name"
+      />
+      <InputField
+        v-model="startXp"
+        label="Starting Experience"
+        type="number"
+        placeholder="0"
+      />
+      <InputField
+        v-model="deathPenaltyMultiplier"
+        label="Death Penalty Multiplier (%)"
+        type="number"
+        placeholder="0"
+      />
+      <InputField
+        v-model="cumulativeGoldEarned"
+        label="Cumulative Gold Earned"
+        type="number"
+        placeholder="0"
+      />
+      <Button :loading="isSubmitting" variant="primary" class="w-full mt-4">
+        Update Campaign
+      </Button>
+    </form>
+  </BaseModal>
+</template>
+
+<script setup>
+import { ref, watch } from 'vue'
+import InputField from '@/components/Atoms/BaseInput/BaseInput.vue'
+import BaseModal from '@/components/Atoms/BaseModal/BaseModal.vue'
+import Button from '@/components/Atoms/BaseButton/BaseButton.vue'
+
+const emit = defineEmits(['close', 'update'])
+const props = defineProps({
+  isOpen: Boolean,
+  campaign: Object, // Campaign object to be edited
+})
+
+const isSubmitting = ref(false)
+const campaignName = ref(props.campaign?.campaignName || '')
+const startXp = ref(props.campaign?.groupExperience || 0)
+const deathPenaltyMultiplier = ref(props.campaign?.deathPenaltyMultiplier || 0)
+const cumulativeGoldEarned = ref(props.campaign?.cumulativeGoldEarned || 0)
+
+const closeModal = () => {
+  emit('close')
+  resetForm()
+}
+
+const resetForm = () => {
+  campaignName.value = props.campaign?.campaignName || ''
+  startXp.value = props.campaign?.groupExperience || 0
+  deathPenaltyMultiplier.value = props.campaign?.deathPenaltyMultiplier || 0
+  cumulativeGoldEarned.value = props.campaign?.cumulativeGoldEarned || 0
+}
+
+watch(
+  () => props.campaign,
+  (newCampaign) => {
+    if (newCampaign) {
+      campaignName.value = newCampaign.campaignName || ''
+      startXp.value = newCampaign.groupExperience || 0
+      deathPenaltyMultiplier.value = newCampaign.deathPenaltyMultiplier || 0
+      cumulativeGoldEarned.value = newCampaign.cumulativeGoldEarned || 0
+    }
+  },
+  { immediate: true }
+)
+
+const handleSubmit = () => {
+  isSubmitting.value = true
+  emit('update', {
+    id: props.campaign.id,
+    campaignName: campaignName.value,
+    groupExperience: startXp.value,
+    deathPenaltyMultiplier: deathPenaltyMultiplier.value,
+    cumulativeGoldEarned: cumulativeGoldEarned.value,
+  })
+  isSubmitting.value = false
+  closeModal()
+}
+</script>
+<!-- src/components/Organisms/baseTabs/baseTabs.vue -->
+<template>
+  <div>
+    <!-- Tab Headers -->
+    <div class="tabs flex space-x-4">
+      <button
+        type="button"
+        v-for="tab in tabs"
+        :key="tab.id"
+        @click.stop="activeTab = tab.id"
+        :class="[
+          'px-4 py-2 rounded-md focus:outline-none',
+          activeTab === tab.id
+            ? 'bg-blue-500 text-white'
+            : 'bg-gray-200 text-gray-700',
+        ]"
+      >
+        {{ tab.label }}
+      </button>
+    </div>
+
+    <!-- Active Tab Content -->
+    <div class="tab-content p-4">
+      <component
+        :is="currentTab.component"
+        :encounterData="encounterData"
+        v-bind="currentTab.props"
+        @update:mapLocations="
+          (newMapLocations) => emit('update:mapLocations', newMapLocations)
+        "
+        @update:encounterDetails="
+          (newDetails) => emit('update:encounterDetails', newDetails)
+        "
+      />
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed } from 'vue'
+
+const props = defineProps({
+  tabs: {
+    type: Array,
+    required: true,
+  },
+  encounterData: {
+    type: Object,
+    required: true,
+  },
+  // Removed unnecessary props
+})
+
+const emit = defineEmits(['update:encounterData'])
+
+const activeTab = ref(props.tabs[0].id)
+
+const currentTab = computed(() =>
+  props.tabs.find((tab) => tab.id === activeTab.value)
+)
+</script>
+
+<style scoped>
+/* Add your styles here */
+.active {
+  font-weight: bold;
+}
+</style>
+<!-- src/components/Organisms/AddEncounterModal/AddEncounterModal.vue -->
+<template>
+  <BaseModal
+    :isOpen="props.isOpen"
+    title="Add New Encounter"
+    @close="closeModal"
+  >
+    <form @submit.prevent="handleSubmit">
+      <!-- Input Fields -->
+      <InputField
+        v-model="numberOfPlayers"
+        label="Number of Players"
+        type="number"
+        placeholder="Enter number of players"
+      />
+
+      <!-- Encounter Difficulty -->
+      <SelectField
+        v-model="encounterDifficultyOption"
+        label="Encounter Difficulty"
+        :options="availableDifficultyOptionsRef"
+        placeholder="Select difficulty"
+        :disabled="availableDifficultyOptionsRef.length === 0"
+      />
+
+      <!-- Encounter Experience (read-only) -->
+      <InputField
+        v-model="encounterExperience"
+        label="Encounter Experience"
+        type="number"
+        placeholder="Encounter experience"
+        :readonly="true"
+      />
+
+      <!-- Other Fields -->
+      <SelectField
+        v-model="mapTerrainType"
+        label="Map Terrain Type"
+        :options="terrainOptionsRef"
+        placeholder="Select terrain type"
+      />
+      <SelectField
+        v-model="timeOfDay"
+        label="Time of Day"
+        :options="timeOfDayOptionsRef"
+        placeholder="Select time of day"
+      />
+      <SelectField
+        v-model="weather"
+        label="Weather"
+        :options="weatherOptionsRef"
+        placeholder="Select weather"
+      />
+      <SelectField
+        v-model="objectivesOfEncounter"
+        label="Objectives of Encounter"
+        :options="objectivesOptionsRef"
+        placeholder="Select objective"
+      />
+
+      <Button
+        type="submit"
+        :loading="isSubmitting"
+        variant="primary"
+        class="w-full mt-4"
+      >
+        Add Encounter
+      </Button>
+    </form>
+  </BaseModal>
+</template>
+
+<script setup>
+import { ref, computed, watch, nextTick } from 'vue'
+import InputField from '@/components/Atoms/BaseInput/BaseInput.vue'
+import SelectField from '@/components/Atoms/BaseSelect/BaseSelect.vue'
+import BaseModal from '@/components/Atoms/BaseModal/BaseModal.vue'
+import Button from '@/components/Atoms/BaseButton/BaseButton.vue'
+import {
+  getRandomMapTerrainType,
+  getRandomTimeOfDay,
+  getRandomWeather,
+  getRandomObjectivesOfEncounter,
+  terrainOptions,
+  timeOfDayOptions,
+  weatherOptions,
+  objectivesOptions,
+} from '@/utils/encounterUtils'
+import {
+  characterAdvancementTable,
+  xpThresholdsByCharLvl,
+} from '@/utils/xpTables'
+
+const props = defineProps({
+  isOpen: {
+    type: Boolean,
+    default: false,
+  },
+  campaign: {
+    type: Object,
+    default: null,
+  },
+})
+
+const emit = defineEmits(['close', 'add'])
+
+const isSubmitting = ref(false)
+
+const numberOfPlayers = ref(4) // Default to 4 players
+const encounterExperience = ref(0)
+
+const encounterDifficultyOption = ref('')
+const mapTerrainType = ref('')
+const timeOfDay = ref('')
+const weather = ref('')
+const objectivesOfEncounter = ref('')
+
+// 1) Simple helper for random ID in [1..100]
+function generateSimpleEncounterId() {
+  return Math.floor(Math.random() * 100) + 1
+}
+
+const calculateRemainingXP = () => {
+  if (!props.campaign || !props.campaign.groupExperience) return 0
+
+  const groupXP = props.campaign.groupExperience
+  const levelData = characterAdvancementTable.find(
+    (lvl) => groupXP >= lvl.start && (lvl.end === null || groupXP <= lvl.end)
+  )
+
+  if (!levelData) return 0
+
+  const totalXPForLevel = levelData.end - levelData.start
+  const remainingXP = totalXPForLevel - (groupXP - levelData.start)
+  console.log('📊 Debug: Group XP:', groupXP, 'Remaining XP:', remainingXP)
+  return remainingXP
+}
+
+const availableDifficultyOptionsRef = computed(() => {
+  if (!props.campaign || !props.campaign.groupLevel) return []
+
+  const xpThresholds = xpThresholdsByCharLvl[props.campaign.groupLevel]
+  if (!xpThresholds) return []
+
+  const remainingXP = calculateRemainingXP()
+  console.log('📊 Debug: Group Level:', props.campaign.groupLevel)
+  console.log('🛠️ Debug: XP Thresholds:', xpThresholds)
+  console.log('🔥 Debug: Computed Remaining XP:', remainingXP)
+
+  const filteredDifficulties = Object.entries(xpThresholds)
+    .filter(([difficulty, xp]) => xp <= remainingXP)
+    .map(([difficulty]) => ({
+      value: difficulty.charAt(0).toUpperCase() + difficulty.slice(1),
+      label: difficulty.charAt(0).toUpperCase() + difficulty.slice(1),
+    }))
+
+  console.log('✅ Debug: Available Difficulties:', filteredDifficulties)
+  return filteredDifficulties
+})
+
+// Watch for changes in encounterDifficultyOption to update encounterExperience
+watch(
+  () => encounterDifficultyOption.value,
+  (newDifficulty) => {
+    if (!props.campaign) return []
+
+    const xpThresholds = xpThresholdsByCharLvl[props.campaign.groupLevel]
+    if (!xpThresholds) return
+
+    const difficultyKey = newDifficulty.toLowerCase()
+    const xpPerPlayer = xpThresholds[difficultyKey] || 0
+    encounterExperience.value = xpPerPlayer
+  }
+)
+
+// Convert options arrays into the format expected by SelectField
+const terrainOptionsRef = ref(
+  terrainOptions.map((value) => ({ value, label: value }))
+)
+const timeOfDayOptionsRef = ref(
+  timeOfDayOptions.map((value) => ({ value, label: value }))
+)
+const weatherOptionsRef = ref(
+  weatherOptions.map((value) => ({ value, label: value }))
+)
+const objectivesOptionsRef = ref(
+  objectivesOptions.map((value) => ({ value, label: value }))
+)
+
+// Reset form
+const resetForm = async () => {
+  numberOfPlayers.value = 4
+  encounterExperience.value = 0
+
+  // Use random utility functions
+  mapTerrainType.value = getRandomMapTerrainType()
+  if (availableDifficultyOptionsRef.value.length > 0) {
+    const randomIndex = Math.floor(
+      Math.random() * availableDifficultyOptionsRef.value.length
+    )
+    encounterDifficultyOption.value =
+      availableDifficultyOptionsRef.value[randomIndex].value
+  } else {
+    encounterDifficultyOption.value = ''
+  }
+  timeOfDay.value = getRandomTimeOfDay()
+  weather.value = getRandomWeather()
+  objectivesOfEncounter.value = getRandomObjectivesOfEncounter()
+
+  await nextTick()
+
+  // Randomly set difficulty from available options (if any)
+  if (availableDifficultyOptionsRef.value.length > 0) {
+    const randomIndex = Math.floor(
+      Math.random() * availableDifficultyOptionsRef.value.length
+    )
+    encounterDifficultyOption.value =
+      availableDifficultyOptionsRef.value[randomIndex].value
+  } else {
+    encounterDifficultyOption.value = ''
+  }
+}
+
+const closeModal = () => {
+  emit('close')
+  resetForm()
+}
+
+const handleSubmit = () => {
+  console.log('🚀 AddEncounterModal: handleSubmit triggered')
+
+  isSubmitting.value = true
+
+  // 2) Build a more comprehensive encounter object
+  const newEncounter = {
+    // If you'd rather call it 'id', that's fine too
+    encounterNumber: generateSimpleEncounterId(),
+    date: new Date().toISOString(),
+
+    // Fields from your form
+    numberOfPlayers: Number(numberOfPlayers.value),
+    encounterExperience: Number(encounterExperience.value),
+    encounterAdjustedExperience: Number(encounterExperience.value),
+    encounterDifficultyOption: encounterDifficultyOption.value,
+    mapTerrainType: mapTerrainType.value,
+    timeOfDay: timeOfDay.value,
+    weather: weather.value,
+    objectivesOfEncounter: objectivesOfEncounter.value,
+
+    // Additional placeholders (if you want to store them):
+    // players: ['Player 1', 'Player 2'],
+    // npcTypes: ['', '', '', ''],
+    // mapLocations: { top: [], left: [], center: [], right: [] },
+    // shortRestNeededFirstOne: false,
+    // ...
+  }
+
+  emit('add', newEncounter)
+  isSubmitting.value = false
+  closeModal()
+  console.log('🚀 after emit in handleSubmit')
+}
+
+// Re-init form whenever the modal is opened or the campaign changes
+watch(
+  () => props.campaign,
+  (newVal) => {
+    if (newVal) {
+      resetForm()
+    }
+  },
+  { immediate: true }
+)
+
+watch(
+  () => props.isOpen,
+  (newVal) => {
+    if (newVal) {
+      resetForm()
+    }
+  }
+)
+</script>
+<template>
+  <div>
+    <Header />
+    <main>
+      <router-view />
+    </main>
+  </div>
+</template>
+
+<script setup>
+import Header from '@/components/Organisms/BaseHeader/BaseHeader.vue'
+</script>
+<template>
+  <div>
+    <Header />
+
+    <main>
+      <router-view />
+    </main>
+  </div>
+</template>
+
+<script setup>
+import Header from '@/components/Organisms/BaseHeader/BaseHeader.vue'
+</script>
+<template>
+  <div
+    class="home flex flex-col items-center justify-center min-h-screen bg-gray-100 text-center"
+  >
+    <h1 class="text-4xl font-bold text-gray-800 mb-4">
+      Welcome to the Home Page
+    </h1>
+    <p class="text-lg text-gray-600 max-w-md">
+      This is a generic home page built with Vue 3 using the Composition API.
+    </p>
+    <div class="mt-8">
+      <router-link
+        to="/login"
+        class="inline-block bg-blue-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-blue-600 transition-colors"
+      >
+        Get Started
+      </router-link>
+    </div>
+  </div>
+</template>
+
+<script setup></script>
+<template>
+  <div class="min-h-screen bg-gray-100 flex flex-col">
+    <header class="bg-blue-500 text-white p-4">
+      <h1 class="text-2xl">Campaigns</h1>
+    </header>
+    <div class="flex flex-1">
+      <aside class="w-64 bg-white p-4 shadow-md">
+        <nav>
+          <ul>
+            <li class="mb-4">
+              <a href="#" class="text-blue-500 hover:underline">Dashboard</a>
+            </li>
+            <li class="mb-4">
+              <a href="#" class="text-blue-500 hover:underline">Campaigns</a>
+            </li>
+            <li class="mb-4">
+              <a href="#" class="text-blue-500 hover:underline">Reports</a>
+            </li>
+          </ul>
+        </nav>
+      </aside>
+      <main class="flex-1 p-4">
+        <h2 class="text-xl font-bold mb-4">Active Campaigns</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div class="bg-white p-4 shadow-md rounded">
+            <h3 class="text-lg font-bold mb-2">Campaign 1</h3>
+            <p class="text-gray-700">Description of Campaign 1.</p>
+          </div>
+          <div class="bg-white p-4 shadow-md rounded">
+            <h3 class="text-lg font-bold mb-2">Campaign 2</h3>
+            <p class="text-gray-700">Description of Campaign 2.</p>
+          </div>
+          <div class="bg-white p-4 shadow-md rounded">
+            <h3 class="text-lg font-bold mb-2">Campaign 3</h3>
+            <p class="text-gray-700">Description of Campaign 3.</p>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</template>
+
+<script setup></script>
+<template>
+  <div class="min-h-screen bg-gray-100 flex flex-col">
+    <div class="flex flex-1">
+      <aside class="w-64 bg-white p-4 shadow-md">
+        <nav>
+          <!-- Navigation items (if needed) -->
+        </nav>
+      </aside>
+      <main class="flex-1 p-4">
+        <!-- LOADING INDICATOR -->
+        <div
+          v-if="campaignLoading || encounterLoading"
+          class="flex flex-col justify-center items-center h-full space-y-4"
+        >
+          <div
+            class="w-24 h-24 border-4 border-gray-300 border-t-blue-500 rounded-full animate-spin"
+          ></div>
+
+          <p class="text-gray-500">Loading data...</p>
+          <!-- or a spinner component -->
+        </div>
+
+        <!-- ACTUAL CONTENT (only shows if NOT loading) -->
+        <div v-else>
+          <div class="flex items-center justify-between mb-6">
+            <Heading title="Conquest of Heroes v2.5 Framework" level="1" />
+          </div>
+          <!-- Campaign Section -->
+          <div class="mb-6">
+            <div class="flex items-center justify-between mb-4">
+              <Heading title="Campaign Management" level="2" />
+              <div class="flex space-x-4">
+                <Button
+                  v-if="!currentCampaign"
+                  variant="primary"
+                  @click="isModalOpen = true"
+                >
+                  Add Campaign
+                </Button>
+
+                <Button
+                  v-else
+                  variant="primary"
+                  @click="isEditModalOpen = true"
+                >
+                  Edit Campaign
+                </Button>
+
+                <Button
+                  v-if="currentCampaign"
+                  variant="secondary"
+                  @click="isDeleteConfirmModalOpen = true"
+                  :loading="campaignLoading"
+                >
+                  Delete Campaign
+                </Button>
+              </div>
+            </div>
+
+            <DataSection
+              v-if="playerProgression.length > 0"
+              title="Player Progression"
+              :items="playerProgression"
+            />
+          </div>
+
+          <!-- Encounter Section -->
+          <div v-if="currentCampaign" class="mb-6">
+            <div class="flex items-center justify-between mb-4">
+              <Heading title="Encounters" level="2" class="mb-0" />
+              <Button variant="primary" @click="isEncounterModalOpen = true">
+                Generate Encounter
+              </Button>
+            </div>
+          </div>
+
+          <!-- List of Encounters -->
+          <div
+            v-if="encounters.length > 0"
+            class="border border-2 border-black rounded"
+          >
+            <EncounterItem
+              v-for="encounter in encounters"
+              :key="encounter.id"
+              :encounter="encounter"
+              @update-encounter="handleUpdateEncounter"
+              @delete-encounter="handleDeleteEncounter"
+            />
+          </div>
+          <div v-else class="text-gray-500">No encounters available.</div>
+        </div>
+
+        <!-- Modals -->
+
+        <!-- Confirmation Modal -->
+        <ConfirmationModal
+          v-if="currentCampaign"
+          :isOpen="isDeleteConfirmModalOpen"
+          title="Delete Campaign"
+          message="Are you sure you want to delete this campaign? This action cannot be undone."
+          @confirm="confirmDeleteCampaign"
+          @cancel="isDeleteConfirmModalOpen = false"
+        />
+
+        <AddCampaignModal
+          :isOpen="isModalOpen"
+          @close="isModalOpen = false"
+          @submit="handleAddCampaign"
+        />
+
+        <EditCampaignModal
+          v-if="currentCampaign"
+          :isOpen="isEditModalOpen"
+          :campaign="currentCampaign"
+          @close="isEditModalOpen = false"
+          @update="handleEditCampaign"
+        />
+
+        <!-- Add Encounter Modal -->
+        <AddEncounterModal
+          v-if="isEncounterModalOpen"
+          :isOpen="isEncounterModalOpen"
+          :campaign="currentCampaign"
+          @close="isEncounterModalOpen = false"
+          @add="handleAddEncounter"
+        />
+      </main>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { computed, ref, onMounted, watch } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useCampaignStore } from '../../store/campaignStore'
+import { useEncounters } from '@/composables/useEncounters'
+
+import Button from '@/components/Atoms/BaseButton/BaseButton.vue'
+import Heading from '@/components/Atoms/BaseHeading/BaseHeading.vue'
+import DataSection from '@/components/Organisms/DataSection/DataSection.vue'
+import ConfirmationModal from '@/components/Molecules/ConfirmationModal/ConfirmationModal.vue'
+
+import AddCampaignModal from '@/components/Organisms/AddCampaignModal/AddCampaignModal.vue'
+import EditCampaignModal from '@/components/Organisms/EditCampaignModal/EditCampaignModal.vue'
+
+import EncounterItem from '@/components/Molecules/EncounterItem/EncounterItem.vue'
+import AddEncounterModal from '@/components/Organisms/AddEncounterModal/AddEncounterModal.vue'
+
+import { generateEncounterData } from '@/utils/encounterDataGenerator'
+
+// Initialize Campaign Store
+const campaignStore = useCampaignStore()
+const {
+  campaigns,
+  currentCampaign,
+  loading: campaignLoading,
+  error: campaignError,
+} = storeToRefs(campaignStore)
+
+const {
+  loadCampaigns,
+  addNewCampaign,
+  editExistingCampaign,
+  deleteExistingCampaign,
+} = campaignStore
+
+// Encounter Composable
+const {
+  encounters,
+  loading: encounterLoading,
+  error: encounterError,
+  fetchEncountersForCampaign,
+  addNewEncounter,
+  updateExistingEncounter,
+  deleteExistingEncounter,
+} = useEncounters()
+
+// Compute "playerProgression"
+const playerProgression = computed(() => {
+  if (!currentCampaign.value) return []
+  return [
+    { label: 'Group Level', value: currentCampaign.value.groupLevel },
+    {
+      label: 'Adventuring Day XP Limit',
+      value: currentCampaign.value.adventuringDayXpLimit,
+    },
+    {
+      label: 'Death Penalty Multiplier',
+      value: `${currentCampaign.value.deathPenaltyMultiplier}%`,
+    },
+    {
+      label: 'Cumulative Gold Earned',
+      value: currentCampaign.value.cumulativeGoldEarned,
+    },
+    {
+      label: 'Current Group Experience',
+      value: currentCampaign.value.groupExperience,
+    },
+    // etc...
+  ]
+})
+
+// Modal States
+const isModalOpen = ref(false)
+const isEditModalOpen = ref(false)
+const isDeleteConfirmModalOpen = ref(false)
+const isEncounterModalOpen = ref(false)
+
+// Campaign Handlers
+const handleAddCampaign = async (campaignData) => {
+  await addNewCampaign(
+    campaignData.campaignName,
+    campaignData.description,
+    campaignData.startXp
+  )
+  isModalOpen.value = false
+}
+const handleEditCampaign = async (updatedCampaign) => {
+  await editExistingCampaign(updatedCampaign)
+  isEditModalOpen.value = false
+}
+const handleDeleteCampaign = async () => {
+  if (!currentCampaign.value) return
+  await deleteExistingCampaign(currentCampaign.value.id)
+  isDeleteConfirmModalOpen.value = false
+}
+const confirmDeleteCampaign = async () => {
+  await handleDeleteCampaign()
+}
+
+// Handlers
+const handleAddEncounter = async (encounterData) => {
+  console.log('👩‍🚀 Parent saw @add event with encounterData:', encounterData)
+  // Pass campaignData as second arg
+  await addNewEncounter(encounterData, currentCampaign.value)
+  isEncounterModalOpen.value = false
+}
+
+const handleUpdateEncounter = async (updatedEncounter) => {
+  await updateExistingEncounter(
+    updatedEncounter.id,
+    updatedEncounter,
+    currentCampaign.value
+  )
+}
+
+const handleDeleteEncounter = async (encounterId) => {
+  if (!encounterId || !currentCampaign.value?.id) {
+    console.error(
+      'Invalid encounterId or campaignId in handleDeleteEncounter:',
+      encounterId,
+      currentCampaign.value?.id
+    )
+    return
+  }
+  await deleteExistingEncounter(encounterId, currentCampaign.value.id)
+}
+
+// onMounted and watch
+onMounted(async () => {
+  await loadCampaigns()
+  if (currentCampaign.value?.id) {
+    // Pass BOTH the campaignId and the campaign object
+    await fetchEncountersForCampaign(
+      currentCampaign.value.id,
+      currentCampaign.value
+    )
+  }
+})
+
+watch(
+  () => currentCampaign.value?.id,
+  async (newCampaignId) => {
+    if (newCampaignId) {
+      await fetchEncountersForCampaign(newCampaignId, currentCampaign.value)
+    } else {
+      encounters.value = []
+    }
+  }
+)
+</script>
+<template>
+  <div class="flex items-center justify-center min-h-screen bg-gray-100">
+    <div class="w-full max-w-xs">
+      <h1 class="text-2xl font-bold text-center text-gray-700 mb-6">
+        Register
+      </h1>
+      <form
+        @submit.prevent="handleRegister"
+        class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4"
+      >
+        <div class="mb-4">
+          <label class="block text-gray-700 text-sm font-bold mb-2" for="email">
+            Email
+          </label>
+          <input
+            id="email"
+            type="email"
+            v-model="email"
+            required
+            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+          />
+        </div>
+        <div class="mb-6">
+          <label
+            class="block text-gray-700 text-sm font-bold mb-2"
+            for="password"
+          >
+            Password
+          </label>
+          <input
+            id="password"
+            type="password"
+            v-model="password"
+            required
+            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline"
+          />
+        </div>
+        <div class="flex items-center justify-between">
+          <Button variant="primary" type="submit" class="w-full"
+            >Register</Button
+          >
+        </div>
+      </form>
+
+      <!-- Google Register Button -->
+      <div class="text-center mt-4">
+        <Button
+          variant="secondary"
+          @click="handleGoogleRegister"
+          class="w-full"
+        >
+          Register with Google
+        </Button>
+      </div>
+
+      <div class="text-center mt-4">
+        <Button
+          variant="primaryOutlined"
+          @click="$router.push('/login')"
+          class="w-full"
+        >
+          Back to Login
+        </Button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { auth } from '@/firebase/firebaseConfig'
+import { register, loginWithGoogle } from '@/services/Auth/authServices'
+import Button from '@/components/Atoms/BaseButton/BaseButton.vue'
+
+const router = useRouter()
+const email = ref('')
+const password = ref('')
+const error = ref('')
+
+// Function to handle registration
+const handleRegister = async () => {
+  error.value = '' // Clear previous errors
+
+  try {
+    await register(auth, email.value, password.value)
+    router.push('/dashboard') // Redirect to dashboard on successful registration
+  } catch (err) {
+    error.value = err.message // Update UI with specific error message
+  }
+}
+
+// Function to handle Google registration
+const handleGoogleRegister = async () => {
+  error.value = '' // Clear previous errors
+
+  try {
+    const user = await loginWithGoogle(auth)
+    console.log('User registered with Google:', user)
+    router.push('/dashboard') // Redirect to dashboard on successful registration
+  } catch (err) {
+    error.value = err.message // Update UI with specific error message
+  }
+}
+</script>
+<template>
+  <div class="flex items-center justify-center min-h-screen bg-gray-100">
+    <div class="w-full max-w-xs">
+      <h1 class="text-2xl font-bold text-center text-gray-700 mb-6">
+        Reset Password
+      </h1>
+      <form
+        @submit.prevent="handlePasswordReset"
+        class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4"
+      >
+        <div class="mb-4">
+          <label class="block text-gray-700 text-sm font-bold mb-2" for="email">
+            Email
+          </label>
+          <input
+            id="email"
+            type="email"
+            v-model="email"
+            required
+            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+          />
+        </div>
+        <div class="flex items-center justify-between">
+          <Button variant="primary" type="submit" class="w-full">
+            Send Reset Link
+          </Button>
+        </div>
+      </form>
+
+      <!-- Message Section -->
+      <div v-if="message" class="mt-4 text-center text-green-500">
+        {{ message }}
+      </div>
+      <div v-if="error" class="mt-4 text-center text-red-500">
+        {{ error }}
+      </div>
+
+      <div class="text-center mt-4">
+        <router-link to="/login" class="text-blue-500 hover:underline">
+          Back to Login
+        </router-link>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import { auth } from '@/firebase/firebaseConfig'
+import { sendPasswordResetEmail } from 'firebase/auth'
+import Button from '@/components/Atoms/BaseButton/BaseButton.vue'
+
+const email = ref('')
+const message = ref('')
+const error = ref('')
+
+// Function to handle password reset
+const handlePasswordReset = async () => {
+  message.value = '' // Clear any previous messages
+  error.value = '' // Clear any previous errors
+
+  try {
+    await sendPasswordResetEmail(auth, email.value)
+    message.value = 'Password reset link sent! Please check your email.'
+  } catch (err) {
+    console.error('Error sending password reset email:', err.message)
+    error.value = 'Failed to send password reset email. Please try again.'
+  }
+}
+</script>
+<template>
+  <div class="flex items-center justify-center min-h-screen bg-gray-100">
+    <div class="w-full max-w-xs">
+      <h1 class="text-2xl font-bold text-center text-gray-700 mb-6">Login</h1>
+      <form
+        @submit.prevent="handleSubmit"
+        class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4"
+      >
+        <div class="mb-4">
+          <label
+            class="block text-gray-700 text-sm font-bold mb-2"
+            for="username"
+          >
+            Username
+          </label>
+          <input
+            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+            id="username"
+            type="text"
+            v-model="username"
+            required
+          />
+        </div>
+        <div class="mb-6">
+          <label
+            class="block text-gray-700 text-sm font-bold mb-2"
+            for="password"
+          >
+            Password
+          </label>
+          <input
+            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline"
+            id="password"
+            type="password"
+            v-model="password"
+            required
+          />
+        </div>
+        <div class="flex items-center justify-between">
+          <Button variant="primary" type="submit" class="w-full">
+            Login
+          </Button>
+        </div>
+
+        <!-- Add this below the Back to Login link -->
+        <div class="text-center mt-4">
+          <router-link
+            to="/reset-password"
+            class="text-blue-500 hover:underline"
+          >
+            Forgot Password?
+          </router-link>
+        </div>
+
+        <!-- Link to Register Page -->
+        <div>
+          <router-link to="/register" class="text-blue-500 hover:underline">
+            Don't have an account? Register
+          </router-link>
+        </div>
+      </form>
+
+      <!-- Google Login Button -->
+      <div class="text-center mt-4">
+        <Button variant="secondary" @click="handleGoogleLogin" class="w-full">
+          Login with Google
+        </Button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { auth } from '@/firebase/firebaseConfig'
+import { login, loginWithGoogle } from '@/services/Auth/authServices'
+import Button from '@/components/Atoms/BaseButton/BaseButton.vue'
+
+const router = useRouter()
+const username = ref('')
+const password = ref('')
+
+// Function to handle login with email and password
+const handleSubmit = async () => {
+  try {
+    await login(auth, username.value, password.value)
+    router.push('/dashboard') // Redirect to dashboard on successful login
+  } catch (error) {
+    console.error('Login error:', error.message)
+  }
+}
+
+// Function to handle Google login
+const handleGoogleLogin = async () => {
+  try {
+    await loginWithGoogle(auth)
+    router.push('/dashboard') // Redirect to dashboard on successful Google login
+  } catch (error) {
+    console.error('Google login error:', error.message)
+  }
+}
+</script>
+// src/services/firebaseAuthMock.js
+
+import sinon from 'sinon'
+
+export const mockAuth = {
+  settings: {},
+  signInWithEmailAndPassword: sinon.stub(),
+  signOut: sinon.stub(),
+  createUserWithEmailAndPassword: sinon.stub(),
+  signInWithPopup: sinon.stub(),
+}
+
+export const resetAuthMocks = () => {
+  mockAuth.signInWithEmailAndPassword.reset()
+  mockAuth.signOut.reset()
+  mockAuth.createUserWithEmailAndPassword.reset()
+  mockAuth.signInWithPopup.reset()
+}
+// src/services/authServices.js
+
+import {
+  createUserWithEmailAndPassword as defaultCreateUserWithEmailAndPassword,
+  signInWithEmailAndPassword as defaultSignInWithEmailAndPassword,
+  signOut as defaultSignOut,
+  GoogleAuthProvider,
+  signInWithPopup as defaultSignInWithPopup,
+} from "firebase/auth";
+
+export const login = async (
+  auth,
+  email,
+  password,
+  signInFn = defaultSignInWithEmailAndPassword
+) => {
+  try {
+    const userCredential = await signInFn(auth, email, password);
+    return userCredential.user;
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error("Error during login:", error.message);
+      throw new Error(error.message);
+    }
+    throw new Error("An unknown error occurred during login.");
+  }
+};
+
+export const logout = async (auth, signOutFn = defaultSignOut) => {
+  try {
+    await signOutFn(auth);
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error("Error during logout:", error.message);
+      throw new Error(error.message);
+    }
+    throw new Error("An unknown error occurred during logout.");
+  }
+};
+
+export const register = async (auth, email, password) => {
+  try {
+    // Use auth.createUserWithEmailAndPassword so that the function can work with both real and mock auth
+    const userCredential = await auth.createUserWithEmailAndPassword(
+      email,
+      password
+    );
+    return userCredential;
+  } catch (error) {
+    if (error.code === "auth/email-already-in-use") {
+      console.error("Error during registration:", error.message);
+      throw new Error(
+        "This email is already registered. Please use another email or login."
+      );
+    } else {
+      console.error("Error during registration:", error.message);
+      throw new Error("Registration failed");
+    }
+  }
+};
+
+export const loginWithGoogle = async (
+  auth,
+  signInWithPopupFn = defaultSignInWithPopup
+) => {
+  try {
+    const provider = new GoogleAuthProvider();
+    const userCredential = await signInWithPopupFn(auth, provider);
+    return userCredential.user;
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error("Error during Google login:", error.message);
+      throw new Error(error.message);
+    }
+    throw new Error("An unknown error occurred during Google login.");
+  }
+};
+import { login, logout, register, loginWithGoogle } from './authServices'
+import sinon from 'sinon'
+
+describe('Auth Service', () => {
+  let mockAuth
+
+  beforeEach(() => {
+    // Re-create the mock object before each test
+    mockAuth = {
+      signInWithEmailAndPassword: sinon.stub(),
+      signOut: sinon.stub(),
+      createUserWithEmailAndPassword: sinon.stub(),
+      signInWithPopup: sinon.stub(),
+    }
+  })
+
+  describe('login function', () => {
+    it('should handle login errors correctly', async () => {
+      const errorMessage = 'Login failed'
+      mockAuth.signInWithEmailAndPassword.rejects(new Error(errorMessage))
+
+      try {
+        await login(
+          mockAuth,
+          'test@example.com',
+          'wrongpassword',
+          mockAuth.signInWithEmailAndPassword
+        )
+        throw new Error('Expected promise to be rejected, but it was resolved')
+      } catch (error) {
+        expect(error.message).to.equal(errorMessage)
+      }
+    })
+
+    it('should return user on successful login', async () => {
+      const mockUser = { uid: '12345', email: 'test@example.com' }
+      mockAuth.signInWithEmailAndPassword.resolves({ user: mockUser })
+
+      const result = await login(
+        mockAuth,
+        'test@example.com',
+        'correctpassword',
+        mockAuth.signInWithEmailAndPassword
+      )
+      expect(result).to.deep.equal(mockUser)
+    })
+  })
+
+  describe('logout function', () => {
+    it('should call signOut and complete successfully', async () => {
+      mockAuth.signOut.resolves()
+
+      await logout(mockAuth, mockAuth.signOut)
+
+      expect(mockAuth.signOut).to.have.been.calledOnce
+    })
+
+    it('should handle errors during logout', async () => {
+      const errorMessage = 'Logout failed'
+      mockAuth.signOut.rejects(new Error(errorMessage))
+
+      try {
+        await logout(mockAuth, mockAuth.signOut)
+        throw new Error('Expected promise to be rejected, but it was resolved')
+      } catch (error) {
+        expect(error.message).to.equal(errorMessage)
+      }
+    })
+  })
+
+  describe('register function', () => {
+    it('should handle registration errors correctly', async () => {
+      mockAuth.createUserWithEmailAndPassword.rejects({
+        code: 'auth/email-already-in-use',
+        message: 'The email address is already in use.',
+      })
+
+      try {
+        await register(mockAuth, 'existing-email@example.com', 'password123')
+        throw new Error('Expected registration to fail')
+      } catch (error) {
+        expect(error.message).to.equal(
+          'This email is already registered. Please use another email or login.'
+        )
+      }
+    })
+
+    it('should return user on successful registration', async () => {
+      const mockUserCredential = { user: { email: 'new-user@example.com' } }
+      mockAuth.createUserWithEmailAndPassword.resolves(mockUserCredential)
+
+      const userCredential = await register(
+        mockAuth,
+        'new-user@example.com',
+        'password123'
+      )
+      expect(userCredential).to.equal(mockUserCredential)
+    })
+  })
+
+  describe('loginWithGoogle function', () => {
+    it('should handle Google login errors correctly', async () => {
+      const errorMessage = 'Google login failed'
+      mockAuth.signInWithPopup.rejects(new Error(errorMessage))
+
+      try {
+        await loginWithGoogle(mockAuth, mockAuth.signInWithPopup)
+        throw new Error('Expected promise to be rejected, but it was resolved')
+      } catch (error) {
+        expect(error.message).to.equal(errorMessage)
+      }
+    })
+
+    it('should return user on successful Google login', async () => {
+      const mockUser = { uid: '12345', email: 'test@example.com' }
+      mockAuth.signInWithPopup.resolves({ user: mockUser })
+
+      const result = await loginWithGoogle(mockAuth, mockAuth.signInWithPopup)
+      expect(result).to.deep.equal(mockUser)
+    })
+  })
+})
+// src/services/encounterService.js (After)
+
+import {
+  collection,
+  getDocs,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  getDoc,
+} from 'firebase/firestore'
+import { db } from '@/firebase/firebaseConfig'
+
+/**
+ * Fetch all encounters for the given campaign.
+ *
+ * @param {string} campaignId - ID of the campaign in Firestore.
+ * @returns {Promise<Array>} - Returns an array of encounters.
+ */
+export async function fbFetchEncountersForCampaign(campaignId) {
+  if (!campaignId) {
+    console.error('No campaignId provided to fbFetchEncountersForCampaign.')
+    return []
+  }
+
+  const encountersCollection = collection(
+    db,
+    'campaigns',
+    campaignId,
+    'encounters'
+  )
+
+  const snapshot = await getDocs(encountersCollection)
+  return snapshot.docs.map((docSnap) => ({
+    id: docSnap.id,
+    ...docSnap.data(),
+  }))
+}
+
+/**
+ * Fetch a single encounter by its ID.
+ *
+ * @param {string} campaignId - ID of the campaign in Firestore.
+ * @param {string} encounterId - ID of the encounter in Firestore.
+ * @returns {Promise<Object|null>} - Encounter data or null if not found.
+ */
+export async function fbFetchEncounterById(campaignId, encounterId) {
+  if (!campaignId || !encounterId) {
+    console.error('Invalid arguments to fbFetchEncounterById.')
+    return null
+  }
+
+  const docRef = doc(db, 'campaigns', campaignId, 'encounters', encounterId)
+  const docSnap = await getDoc(docRef)
+
+  if (!docSnap.exists()) {
+    return null
+  }
+  return { id: docSnap.id, ...docSnap.data() }
+}
+
+/**
+ * Add a new encounter to the given campaign.
+ *
+ * @param {string} campaignId - ID of the campaign in Firestore.
+ * @param {Object} encounterData - Encounter object to be added.
+ * @returns {Promise<Object>} - Returns the newly created encounter, including its new ID.
+ */
+export async function fbAddEncounter(campaignId, encounterData) {
+  if (!campaignId) {
+    console.error('No campaignId provided to fbAddEncounter.')
+    return null
+  }
+
+  const encountersCollection = collection(
+    db,
+    'campaigns',
+    campaignId,
+    'encounters'
+  )
+
+  // Exclude `id` if it exists
+  const { id, ...data } = encounterData
+  const docRef = await addDoc(encountersCollection, data)
+
+  return { id: docRef.id, ...data }
+}
+
+/**
+ * Update an existing encounter.
+ *
+ * @param {string} campaignId - ID of the campaign in Firestore.
+ * @param {string} encounterId - ID of the encounter in Firestore.
+ * @param {Object} updatedData - Fields to update.
+ * @returns {Promise<void>} - Resolves if successful; otherwise throws an error.
+ */
+export async function fbUpdateEncounter(campaignId, encounterId, updatedData) {
+  if (!campaignId || !encounterId) {
+    console.error('Invalid arguments to fbUpdateEncounter.')
+    return
+  }
+
+  try {
+    const encounterDocRef = doc(
+      db,
+      'campaigns',
+      campaignId,
+      'encounters',
+      encounterId
+    )
+    await updateDoc(encounterDocRef, updatedData)
+  } catch (error) {
+    console.error('Error updating encounter:', error)
+    throw error
+  }
+}
+
+/**
+ * Delete an encounter by ID from the given campaign.
+ *
+ * @param {string} campaignId - ID of the campaign in Firestore.
+ * @param {string} encounterId - ID of the encounter in Firestore.
+ * @returns {Promise<void>} - Resolves when deletion is complete.
+ */
+export async function fbDeleteEncounter(campaignId, encounterId) {
+  if (!campaignId) {
+    console.error('No campaignId provided to fbDeleteEncounter.')
+    return
+  }
+
+  const docRef = doc(db, 'campaigns', campaignId, 'encounters', encounterId)
+  await deleteDoc(docRef)
+  console.log(`Encounter with ID ${encounterId} deleted successfully.`)
+}
+// firebaseConfig.cy.js
+import { initializeApp } from "firebase/app";
+import firebaseConfig from "@/firebase/firebaseConfig";
+
+describe("Firebase Configuration", () => {
+  it("should initialize Firebase app without errors", () => {
+    const app = initializeApp(firebaseConfig);
+    expect(app).to.exist;
+  });
+});
+// src/services/campaignService.cy.js
+import { fetchCampaigns } from "./campaignService";
+import { mockFirestore, resetFirestoreMocks } from "./firebaseFirestoreMock";
+import sinon from "sinon";
+
+// Mock the Firestore module
+const firestoreModule = await import("firebase/firestore");
+sinon.stub(firestoreModule, "collection").callsFake(mockFirestore.collection);
+sinon.stub(firestoreModule, "getDocs").callsFake(mockFirestore.getDocs);
+// ... Repeat for other methods as needed
+
+describe("Campaign Service Tests", () => {
+  it("should fetch campaigns successfully", async () => {
+    // Mock Firestore methods
+    const mockGetDocs = cy.stub().resolves({
+      docs: [
+        { id: "1", data: () => ({ name: "Campaign 1" }) },
+        { id: "2", data: () => ({ name: "Campaign 2" }) },
+      ],
+    });
+    const mockCollection = cy.stub().returns("campaignsCollection");
+
+    // Call the service function with mocks
+    const campaigns = await fetchCampaigns(null, mockGetDocs, mockCollection);
+
+    // Assertions
+    expect(mockCollection).to.have.been.calledWith(null, "campaigns");
+    expect(campaigns).to.deep.equal([
+      { id: "1", name: "Campaign 1" },
+      { id: "2", name: "Campaign 2" },
+    ]);
+  });
+});
+
+it("should add a campaign successfully", async () => {
+  // Mock Firestore methods
+  const mockAddDoc = cy.stub().resolves({ id: "newCampaignId" });
+  const mockCollection = cy.stub().returns("campaignsCollection");
+
+  const newCampaign = { name: "New Campaign" };
+
+  // Call the service function with mocks
+  const campaign = await addCampaign(
+    null,
+    newCampaign,
+    mockAddDoc,
+    mockCollection
+  );
+
+  // Assertions
+  expect(mockCollection).to.have.been.calledWith(null, "campaigns");
+  expect(mockAddDoc).to.have.been.calledWith(
+    "campaignsCollection",
+    newCampaign
+  );
+  expect(campaign).to.deep.equal({ id: "newCampaignId", name: "New Campaign" });
+});
+
+it("should update a campaign successfully", async () => {
+  // Mock Firestore methods
+  const mockDoc = cy.stub().returns("campaignDocRef");
+  const mockUpdateDoc = cy.stub().resolves();
+  const mockGetDoc = cy
+    .stub()
+    .resolves({ id: "1", data: () => ({ name: "Updated Campaign" }) });
+
+  const campaignToUpdate = { id: "1", name: "Updated Campaign" };
+
+  // Call the service function with mocks
+  const updatedCampaign = await updateCampaign(
+    null,
+    campaignToUpdate,
+    mockUpdateDoc,
+    mockDoc,
+    mockGetDoc
+  );
+
+  // Assertions
+  expect(mockDoc).to.have.been.calledWith(null, "campaigns", "1");
+  expect(mockUpdateDoc).to.have.been.calledWith("campaignDocRef", {
+    name: "Updated Campaign",
+  });
+  expect(updatedCampaign).to.deep.equal({ id: "1", name: "Updated Campaign" });
+});
+
+it("should delete a campaign successfully", async () => {
+  // Mock Firestore methods
+  const mockDoc = cy.stub().returns("campaignDocRef");
+  const mockDeleteDoc = cy.stub().resolves();
+
+  const campaignIdToDelete = "1";
+
+  // Call the service function with mocks
+  await deleteCampaign(null, campaignIdToDelete, mockDeleteDoc, mockDoc);
+
+  // Assertions
+  expect(mockDoc).to.have.been.calledWith(null, "campaigns", "1");
+  expect(mockDeleteDoc).to.have.been.calledWith("campaignDocRef");
+});
+// services/campaignService.js
+import {
+  collection,
+  getDocs,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  getDoc,
+} from 'firebase/firestore'
+import { db } from '@/firebase/firebaseConfig'
+
+// 1) fetchCampaigns
+export async function fetchCampaigns(
+  getDocsFunc = getDocs,
+  collectionFunc = collection
+) {
+  const campaignsCollection = collectionFunc(db, 'campaigns')
+  const snapshot = await getDocsFunc(campaignsCollection)
+  return snapshot.docs.map((docSnap) => ({
+    id: docSnap.id,
+    ...docSnap.data(),
+  }))
+}
+
+// 2) addCampaign
+export async function addCampaign(
+  campaign,
+  addDocFunc = addDoc,
+  collectionFunc = collection
+) {
+  const campaignsCollection = collectionFunc(db, 'campaigns')
+
+  if (!campaign.campaignName) {
+    throw new Error('Missing required fields')
+  }
+
+  const { id, ...data } = campaign
+  const docRef = await addDocFunc(campaignsCollection, data)
+  return { id: docRef.id, ...data }
+}
+
+// 3) updateCampaign
+export async function updateCampaign(
+  campaign,
+  updateDocFunc = updateDoc,
+  docFunc = doc,
+  getDocFunc = getDoc
+) {
+  const docRef = docFunc(db, 'campaigns', campaign.id)
+  const { id, ...data } = campaign
+  await updateDocFunc(docRef, data)
+  const docSnap = await getDocFunc(docRef)
+  return { id: docSnap.id, ...docSnap.data() }
+}
+
+// 4) deleteCampaign
+export async function deleteCampaign(
+  campaignId,
+  deleteDocFunc = deleteDoc,
+  docFunc = doc
+) {
+  const docRef = docFunc(db, 'campaigns', campaignId)
+  await deleteDocFunc(docRef)
+}
+
+// 5) fetchCampaignById (already uses 'db' directly inside)
+export async function fetchCampaignById(campaignId) {
+  try {
+    const campaignRef = doc(db, 'campaigns', campaignId)
+    const campaignSnap = await getDoc(campaignRef)
+    if (campaignSnap.exists()) {
+      return { id: campaignSnap.id, ...campaignSnap.data() }
+    } else {
+      throw new Error('Campaign not found')
+    }
+  } catch (error) {
+    console.error('Error fetching campaign by ID:', error)
+    throw error
+  }
+}
+
+// 6) updateCampaignInFirebase
+export async function updateCampaignInFirebase(campaignId, updatedData) {
+  try {
+    const campaignDocRef = doc(db, 'campaigns', campaignId)
+    await updateDoc(campaignDocRef, updatedData)
+  } catch (error) {
+    console.error('Error updating campaign in Firebase:', error)
+  }
+}
+// src/store/encounterStore.js
+
+import { defineStore } from 'pinia'
+import { ref } from 'vue'
+import {
+  fetchEncounters,
+  addEncounter,
+  updateEncounter,
+  deleteEncounter,
+} from '@/services/Encounter/encounterService'
+
+import {
+  fetchCampaignById,
+  updateCampaignInFirebase,
+} from '@/services/Campaign/campaignService'
+
+import { calculateRemainingAdventuringDayXP } from '@/utils/encounterUtils'
+import { calculateEncounterFields } from '@/utils/calculateEncounterFields'
+// or import { generateEncounterData } from '@/utils/encounterDataGenerator'
+
+import { useCampaignStore } from './campaignStore'
+
+export const useEncounterStore = defineStore('encounter', () => {
+  // ===========================
+  // State
+  // ===========================
+  const encounters = ref([])
+  const loading = ref(false)
+  const error = ref(null)
+
+  // Access the Campaign Store
+  const campaignStore = useCampaignStore()
+
+  // ===========================
+  // Actions
+  // ===========================
+
+  /**
+   * Fetch Encounters for the given campaign
+   */
+  async function fetchEncountersForCampaign(campaignId) {
+    if (!campaignId) {
+      console.error('No campaignId provided to fetchEncountersForCampaign.')
+      encounters.value = []
+      return
+    }
+    loading.value = true
+    error.value = null
+    try {
+      const data = await fetchEncounters(campaignId)
+      // If you want to transform each encounter:
+      const campaign = campaignStore.currentCampaign
+      encounters.value = data.map((enc) => {
+        const derived = calculateEncounterFields(enc, campaign)
+        return { ...enc, ...derived }
+      })
+    } catch (err) {
+      console.error('Error fetching encounters:', err)
+      error.value = err
+      encounters.value = []
+    } finally {
+      loading.value = false
+    }
+  }
+
+  /**
+   * Add a new encounter to the current campaign
+   */
+  async function addNewEncounter(encounterData) {
+    const campaignId = campaignStore.currentCampaign?.id
+    if (!campaignId) {
+      console.error('No current campaign selected in addNewEncounter.')
+      return
+    }
+    loading.value = true
+    error.value = null
+
+    try {
+      const campaign = campaignStore.currentCampaign
+      // Merge derived fields
+      const derived = calculateEncounterFields(encounterData, campaign)
+      const finalData = {
+        ...encounterData,
+        ...derived,
+        createdAt: new Date().toISOString(),
+      }
+
+      const addedEncounter = await addEncounter(campaignId, finalData)
+      if (addedEncounter) {
+        encounters.value.push(addedEncounter)
+        console.log('Encounter added:', addedEncounter)
+        // e.g. recalc Adventuring Day XP
+        await updateRemainingAdventuringDayXP()
+      }
+    } catch (err) {
+      console.error('Error adding encounter:', err)
+      error.value = err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  /**
+   * Update an existing encounter
+   */
+  async function updateExistingEncounter(encounterId, updatedData) {
+    const campaignId = campaignStore.currentCampaign?.id
+    if (!campaignId || !encounterId) {
+      console.error(
+        'Invalid campaignId or encounterId in updateExistingEncounter.'
+      )
+      return
+    }
+    loading.value = true
+    error.value = null
+
+    try {
+      const campaign = campaignStore.currentCampaign
+      // Derive fields again
+      const derived = calculateEncounterFields(updatedData, campaign)
+      const finalData = { ...updatedData, ...derived }
+
+      await updateEncounter(campaignId, encounterId, finalData)
+
+      // Update local state
+      const index = encounters.value.findIndex((e) => e.id === encounterId)
+      if (index !== -1) {
+        encounters.value[index] = { ...encounters.value[index], ...finalData }
+      }
+      console.log('Encounter updated:', encounterId)
+    } catch (err) {
+      console.error('Error updating encounter:', err)
+      error.value = err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  /**
+   * Delete an encounter
+   */
+  async function deleteExistingEncounter(encounterId) {
+    const campaignId = campaignStore.currentCampaign?.id
+    if (!campaignId || !encounterId) {
+      console.error(
+        'Invalid campaignId or encounterId in deleteExistingEncounter.'
+      )
+      return
+    }
+    loading.value = true
+    error.value = null
+
+    try {
+      await deleteEncounter(campaignId, encounterId)
+      // Remove from local array
+      encounters.value = encounters.value.filter((e) => e.id !== encounterId)
+      console.log(`Encounter with ID ${encounterId} deleted successfully.`)
+      // e.g. recalc Adventuring Day XP
+      await updateRemainingAdventuringDayXP()
+    } catch (err) {
+      console.error('Error deleting encounter:', err)
+      error.value = err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  /**
+   * Recalc remaining Adventuring Day XP
+   */
+  async function updateRemainingAdventuringDayXP() {
+    const campaignId = campaignStore.currentCampaign?.id
+    if (!campaignId) return
+
+    try {
+      const campaign = await fetchCampaignById(campaignId)
+      // The second parameter "usedXp" is questionable if it’s "campaignId" or actual XP usage
+      // Possibly you want to sum up XP from all encounters or a different logic:
+      const remainingXP = await calculateRemainingAdventuringDayXP(
+        campaign.adventuringDayXpLimit,
+        // If "usedXp" is your total XP used, you might pass something else here:
+        campaignId
+      )
+      await updateCampaignInFirebase(campaignId, {
+        remainingAdventuringDayXP: remainingXP,
+      })
+    } catch (err) {
+      console.error('Error updating remaining Adventuring Day XP:', err)
+      error.value = err
+    }
+  }
+
+  // ===========================
+  // Return from defineStore
+  // ===========================
+  return {
+    // state
+    encounters,
+    loading,
+    error,
+    // actions
+    fetchEncountersForCampaign,
+    addNewEncounter,
+    updateExistingEncounter,
+    deleteExistingEncounter,
+    updateRemainingAdventuringDayXP,
+  }
+})
+// store/campaignStore.js (After)
+
+import { defineStore } from 'pinia'
+import { useCampaigns } from '@/composables/useCampaigns'
+
+export const useCampaignStore = defineStore('campaign', () => {
+  // Pull the reactive refs + actions from the composable
+  const {
+    campaigns,
+    currentCampaign,
+    loading,
+    error,
+    loadCampaigns,
+    addNewCampaign,
+    editExistingCampaign,
+    deleteExistingCampaign,
+    loadCampaignById,
+  } = useCampaigns()
+
+  // Optionally, you can add additional store-specific logic here if needed
+
+  // Expose state & actions
+  return {
+    campaigns,
+    currentCampaign,
+    loading,
+    error,
+
+    loadCampaigns,
+    addNewCampaign,
+    editExistingCampaign,
+    deleteExistingCampaign,
+    loadCampaignById,
+  }
+})
+import { createRouter, createWebHistory } from 'vue-router'
+import HomeView from '@/views/Home/HomeView.vue'
+import Login from '@/views/Login/LoginView.vue'
+import Dashboard from '@/views/Dashboard/DashboardView.vue'
+import AuthLayout from '@/layouts/AuthLayout.vue'
+import DefaultLayout from '@/layouts/DefaultLayout.vue'
+import { auth } from '@/firebase/firebaseConfig'
+
+const routes = [
+  {
+    path: '/',
+    component: DefaultLayout,
+    children: [{ path: '', component: HomeView }],
+  },
+  {
+    path: '/login',
+    component: DefaultLayout,
+    children: [{ path: '', component: Login }],
+  },
+
+  {
+    path: '/register',
+    component: DefaultLayout,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/Register/RegisterView.vue'),
+      },
+    ],
+  },
+  {
+    path: '/reset-password',
+    component: DefaultLayout,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/ResetPassword/ResetPasswordView.vue'),
+      },
+    ],
+  },
+  {
+    path: '/dashboard',
+    component: AuthLayout,
+    meta: { requiresAuth: true },
+    children: [{ path: '', component: Dashboard }],
+  },
+]
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes,
+})
+
+// Navigation Guard
+router.beforeEach((to, from, next) => {
+  const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
+  const currentUser = auth.currentUser
+
+  if (requiresAuth && !currentUser) {
+    next('/')
+  } else {
+    next()
+  }
+})
+
+export default router
