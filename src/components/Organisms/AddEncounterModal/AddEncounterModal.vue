@@ -90,6 +90,7 @@ import {
   characterAdvancementTable,
   xpThresholdsByCharLvl,
 } from '@/utils/xpTables'
+import { fbFetchEncountersForCampaign } from '@/services/Encounter/encounterService'
 
 const props = defineProps({
   isOpen: {
@@ -115,9 +116,27 @@ const timeOfDay = ref('')
 const weather = ref('')
 const objectivesOfEncounter = ref('')
 
-// 1) Simple helper for random ID in [1..100]
-function generateSimpleEncounterId() {
-  return Math.floor(Math.random() * 100) + 1
+async function generateSimpleEncounterId(campaignId) {
+  if (!campaignId) {
+    console.error('generateSimpleEncounterId: No campaignId provided.')
+    return 1
+  }
+
+  try {
+    // Fetch all existing encounters for the campaign
+    const encounters = await fbFetchEncountersForCampaign(campaignId)
+
+    // Find the highest existing encounterNumber
+    const highestId = encounters.length
+      ? Math.max(...encounters.map((enc) => enc.encounterNumber || 0))
+      : 0
+
+    // Return the next sequential ID
+    return highestId + 1
+  } catch (error) {
+    console.error('Error generating encounter ID:', error)
+    return 1 // Default to 1 if error occurs
+  }
 }
 
 const calculateRemainingXP = () => {
@@ -226,15 +245,16 @@ const closeModal = () => {
   resetForm()
 }
 
-const handleSubmit = () => {
+const handleSubmit = async () => {
   console.log('🚀 AddEncounterModal: handleSubmit triggered')
-
   isSubmitting.value = true
+
+  // Generate a unique sequential encounter ID
+  const newEncounterId = await generateSimpleEncounterId(props.campaign?.id)
 
   // 2) Build a more comprehensive encounter object
   const newEncounter = {
-    // If you'd rather call it 'id', that's fine too
-    encounterNumber: generateSimpleEncounterId(),
+    encounterNumber: newEncounterId, // Ensure it's unique
     date: new Date().toISOString(),
 
     // Fields from your form
@@ -246,13 +266,6 @@ const handleSubmit = () => {
     timeOfDay: timeOfDay.value,
     weather: weather.value,
     objectivesOfEncounter: objectivesOfEncounter.value,
-
-    // Additional placeholders (if you want to store them):
-    // players: ['Player 1', 'Player 2'],
-    // npcTypes: ['', '', '', ''],
-    // mapLocations: { top: [], left: [], center: [], right: [] },
-    // shortRestNeededFirstOne: false,
-    // ...
   }
 
   emit('add', newEncounter)
