@@ -1,25 +1,36 @@
-<!-- src/components/Organisms/Tabs/Tabs.vue -->
+<!-- src/components/Organisms/baseTabs/baseTabs.vue -->
 <template>
   <div>
     <!-- Tab Headers -->
-    <div class="tabs">
+    <div class="tabs flex space-x-4">
       <button
+        type="button"
         v-for="tab in tabs"
         :key="tab.id"
-        @click="activeTab = tab.id"
-        :class="{ active: activeTab === tab.id }"
+        @click.stop="activeTab = tab.id"
+        :class="[
+          'px-4 py-2 rounded-md focus:outline-none',
+          activeTab === tab.id
+            ? 'bg-blue-500 text-white'
+            : 'bg-gray-200 text-gray-700',
+        ]"
       >
         {{ tab.label }}
       </button>
     </div>
 
     <!-- Active Tab Content -->
-    <div class="tab-content">
+    <div class="tab-content p-4">
       <component
         :is="currentTab.component"
         :encounterData="encounterData"
         v-bind="currentTab.props"
-        @update:encounterData="handleUpdate"
+        @update:mapLocations="
+          (newMapLocations) => emit('update:mapLocations', newMapLocations)
+        "
+        @update:encounterDetails="
+          (newDetails) => emit('update:encounterDetails', newDetails)
+        "
       />
     </div>
   </div>
@@ -37,26 +48,7 @@ const props = defineProps({
     type: Object,
     required: true,
   },
-  difficultyOptionsRef: {
-    type: Array,
-    required: true,
-  },
-  terrainOptionsRef: {
-    type: Array,
-    required: true,
-  },
-  timeOfDayOptionsRef: {
-    type: Array,
-    required: true,
-  },
-  weatherOptionsRef: {
-    type: Array,
-    required: true,
-  },
-  objectivesOptionsRef: {
-    type: Array,
-    required: true,
-  },
+  // Removed unnecessary props
 })
 
 const emit = defineEmits(['update:encounterData'])
@@ -66,11 +58,6 @@ const activeTab = ref(props.tabs[0].id)
 const currentTab = computed(() =>
   props.tabs.find((tab) => tab.id === activeTab.value)
 )
-
-// Handle update:encounterData from child components
-const handleUpdate = (updatedData) => {
-  emit('update:encounterData', updatedData)
-}
 </script>
 
 <style scoped>

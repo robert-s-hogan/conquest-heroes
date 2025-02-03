@@ -9,6 +9,7 @@
     "build": "npm run lint && vite build",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "concat-files": "find src -type d \\(     -name 'node_modules' -o -name '.git' -o -name 'dist' -o     -name 'firebase' -o -name 'secrets' -o -name '.vercel' -o -name '.firebase'   \\) -prune -o -type f \\(     -name \"*.vue\" -o -name \"*.js\" -o -name \"*.ts\"   \\) ! -name '.env*' ! -name 'package-lock.json' ! -name 'yarn.lock' ! -name 'pnpm-lock.yaml'     ! -name 'npm-debug.log*' ! -name 'yarn-debug.log*' ! -name 'firebase-debug.log' ! -name 'firestore-debug.log'     ! -name 'firebase-export' ! -name '.*.swp' ! -name '.*.swo' ! -name '*.bak' ! -name '*.orig'   -print0 | xargs -0 cat > all-files.txt",
     "preview": "vite preview",
     "test": "npx cypress open --component --browser edge",
     "test:e2e": "npx cypress open --e2e --browser edge",
@@ -17,6 +18,7 @@
   },
   "dependencies": {
     "firebase": "^10.14.0",
+    "pinia": "^2.3.1",
     "vite-plugin-eslint": "^1.8.1",
     "vue": "^3.5.10",
     "vue-router": "^4.4.5"
@@ -37,6 +39,6 @@
     "postcss": "^8.4.47",
     "sinon": "^19.0.2",
     "tailwindcss": "^3.4.13",
-    "vite": "^5.4.8"
+    "vite": "^6.0.11"
   }
 }

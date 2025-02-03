@@ -1,5 +1,6 @@
 <template>
   <button
+    :type="type"
     :class="buttonClasses"
     @click="handleClick"
     :disabled="loading"
@@ -36,6 +37,10 @@
 import { computed } from 'vue'
 
 const props = defineProps({
+  type: {
+    type: String,
+    default: 'button',
+  },
   variant: {
     type: String,
     default: 'primary',
@@ -49,6 +54,8 @@ const props = defineProps({
 const emit = defineEmits(['click'])
 
 const handleClick = () => {
+  console.log('BaseButton handleClick triggered')
+
   if (!props.loading) {
     emit('click') // Emit click event only if not loading
   }
@@ -73,7 +80,7 @@ const buttonClasses = computed(() => {
     }
   })()
 
-  const loadingClasses = props.loading ? 'opacity-70 cursor-not-allowed' : '' // Apply opacity and disable cursor when loading
+  const loadingClasses = props.loading ? 'opacity-70 cursor-not-allowed' : ''
 
   return `${baseClasses} ${variantClasses} ${loadingClasses}`
 })

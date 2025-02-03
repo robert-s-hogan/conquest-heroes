@@ -1,0 +1,674 @@
+[
+  {
+    "name": "Altar (broken/ruins)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Altar (intact)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Anchor, large",
+    "rareness": 0.1
+  },
+  {
+    "name": "Anchor, small",
+    "rareness": 0.1
+  },
+  {
+    "name": "Animal Pen",
+    "rareness": 0.1
+  },
+  {
+    "name": "Animal Trap, small (1d4 + grapple)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Anvil",
+    "rareness": 0.1
+  },
+  {
+    "name": "Apiary (beehive yard)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Arch",
+    "rareness": 0.1
+  },
+  {
+    "name": "Aviary (hawks)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Aviary (hummingbirds)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Aviary (white doves)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Barn",
+    "rareness": 0.1
+  },
+  {
+    "name": "Barrel",
+    "rareness": 0.2
+  },
+  {
+    "name": "Barrels",
+    "rareness": 0.2
+  },
+  {
+    "name": "Beehive (angry)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Beehive (passive)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Books (all pages missing or blank)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Bookshelf (ruined)",
+    "rareness": 0.2
+  },
+  {
+    "name": "Boulder (L)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Boulders (M)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Bridge (broken, metal)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Bridge (broken, stone)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Bridge (broken, wooden)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Bridge (intact, metal)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Bridge (intact, stone)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Bridge (intact, wooden)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Building Ruins (L)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Building Ruins (S)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Bunker",
+    "rareness": 0.1
+  },
+  {
+    "name": "Campfire (lit)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Campfire (out)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Caravan Wagon",
+    "rareness": 0.1
+  },
+  {
+    "name": "Carnival Tent",
+    "rareness": 0.2
+  },
+  {
+    "name": "Cart",
+    "rareness": 0.2
+  },
+  {
+    "name": "Castle Ruins",
+    "rareness": 0.1
+  },
+  {
+    "name": "Cauldron (empty)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Cauldron (full)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Chariot",
+    "rareness": 0.1
+  },
+  {
+    "name": "Chest (locked)",
+    "rareness": 0.2
+  },
+  {
+    "name": "Chest (unlocked)",
+    "rareness": 0.2
+  },
+  {
+    "name": "Clock (broken)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Clock (intact)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Clock Tower (intact)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Clock Tower (toppled)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Coffin",
+    "rareness": 0.1
+  },
+  {
+    "name": "Cog(s), Large (10ft)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Cog(s), Massive (25ft)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Corpse",
+    "rareness": 0.1
+  },
+  {
+    "name": "Corpses",
+    "rareness": 0.1
+  },
+  {
+    "name": "Crate (empty)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Crate (full)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Crates (empty)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Crates (full)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Dammed River",
+    "rareness": 0.1
+  },
+  {
+    "name": "Den (empty)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Dog House",
+    "rareness": 0.1
+  },
+  {
+    "name": "Fallen Tree (large)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Fallen Tree (small)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Farmhouse",
+    "rareness": 0.1
+  },
+  {
+    "name": "Footlocker, locked",
+    "rareness": 0.1
+  },
+  {
+    "name": "Footlocker, unlocked",
+    "rareness": 0.1
+  },
+  {
+    "name": "Fountain (water)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Garden (butterflies)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Garden (fruits + vegetables)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Garden (giant fruits + vegetables)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Gemstones (small, rough)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Geyser",
+    "rareness": 0.1
+  },
+  {
+    "name": "Giant Mushrooms, safe",
+    "rareness": 0.1
+  },
+  {
+    "name": "Giant Mushrooms, toxic",
+    "rareness": 0.1
+  },
+  {
+    "name": "Granary",
+    "rareness": 0.1
+  },
+  {
+    "name": "Gravestones",
+    "rareness": 0.1
+  },
+  {
+    "name": "Graveyard, (HOLY, Hallow spell)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Greenhouse (carnivorous plants)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Greenhouse (hallucinogenic plants)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Greenhouse (poisonous plants)",
+    "rareness": 0.1
+  },
+  {
+    "name": "House",
+    "rareness": 0.1
+  },
+  {
+    "name": "Bell, Huge (20ft) (on side, intact)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Illusory Object",
+    "rareness": 0.1
+  },
+  {
+    "name": "Illusory Person/NPC",
+    "rareness": 0.1
+  },
+  {
+    "name": "Chest, large",
+    "rareness": 0.2
+  },
+  {
+    "name": "Lighthouse",
+    "rareness": 0.1
+  },
+  {
+    "name": "Log Pile, large",
+    "rareness": 0.1
+  },
+  {
+    "name": "Mausoleum",
+    "rareness": 0.1
+  },
+  {
+    "name": "Meteorite",
+    "rareness": 0.1
+  },
+  {
+    "name": "Nest (empty)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Obelisk (intact)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Obelisk (ruined)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Obelisk (toppled)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Observatory",
+    "rareness": 0.1
+  },
+  {
+    "name": "Petrified Creatures",
+    "rareness": 0.1
+  },
+  {
+    "name": "Picnic (basic foods + drink)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Picnic (exotic foods/drinks, inspiration)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Picnic (heroes feast)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Picnic Basket",
+    "rareness": 0.1
+  },
+  {
+    "name": "Pond, small (20ft)",
+    "rareness": 0.1
+  },
+  {
+    "name": "River, water",
+    "rareness": 0.1
+  },
+  {
+    "name": "Road",
+    "rareness": 0.2
+  },
+  {
+    "name": "Rock patch (L)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Scarecrow",
+    "rareness": 0.1
+  },
+  {
+    "name": "Shack",
+    "rareness": 0.1
+  },
+  {
+    "name": "Ship (intact)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Ship (wrecked)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Ship's Sail",
+    "rareness": 0.1
+  },
+  {
+    "name": "Skeletal Remains (L)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Skeletal Remains (S)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Chest, small",
+    "rareness": 0.2
+  },
+  {
+    "name": "Fortress, small (60ft sq)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Stables",
+    "rareness": 0.1
+  },
+  {
+    "name": "Standing Stones",
+    "rareness": 0.1
+  },
+  {
+    "name": "Statue (intact)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Statue (ruined)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Statue (toppled)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Stream",
+    "rareness": 0.1
+  },
+  {
+    "name": "Table + Chairs (stone)",
+    "rareness": 0.2
+  },
+  {
+    "name": "Table + Chairs (wood)",
+    "rareness": 0.2
+  },
+  {
+    "name": "Tavern",
+    "rareness": 0.1
+  },
+  {
+    "name": "Telescope",
+    "rareness": 0.1
+  },
+  {
+    "name": "Temple Ruins",
+    "rareness": 0.1
+  },
+  {
+    "name": "Tent",
+    "rareness": 0.2
+  },
+  {
+    "name": "Throne (intact)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Throne (toppled)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Tomb (broken/empty)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Tomb (intact)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Totem Pole",
+    "rareness": 0.1
+  },
+  {
+    "name": "Tree (massive)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Treehouse, full enclosure",
+    "rareness": 0.1
+  },
+  {
+    "name": "Treehouse, platform",
+    "rareness": 0.1
+  },
+  {
+    "name": "Trench (5x20ft)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Wall, stone",
+    "rareness": 0.2
+  },
+  {
+    "name": "Watchtower",
+    "rareness": 0.1
+  },
+  {
+    "name": "Well",
+    "rareness": 0.1
+  },
+  {
+    "name": "Windmill",
+    "rareness": 0.1
+  },
+  {
+    "name": "Wizard Tower (intact)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Wizard Tower (ruins)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Worn Path",
+    "rareness": 0.1
+  },
+  {
+    "name": "Wall, wooden",
+    "rareness": 0.2
+  },
+  {
+    "name": "Wall, corpses",
+    "rareness": 0.2
+  },
+  {
+    "name": "Wall, brambles",
+    "rareness": 0.2
+  },
+  {
+    "name": "Wall, ice",
+    "rareness": 0.2
+  },
+  {
+    "name": "Wall, fire",
+    "rareness": 0.2
+  },
+  {
+    "name": "Waterfall",
+    "rareness": 0.1
+  },
+  {
+    "name": "Palisade, wooden",
+    "rareness": 0.1
+  },
+  {
+    "name": "Fence, Iron",
+    "rareness": 0.2
+  },
+  {
+    "name": "Fence, Wood",
+    "rareness": 0.2
+  },
+  {
+    "name": "Moat",
+    "rareness": 0.1
+  },
+  {
+    "name": "Pond, large (40ft)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Gazebo",
+    "rareness": 0.1
+  },
+  {
+    "name": "Gong",
+    "rareness": 0.1
+  },
+  {
+    "name": "Mine Shaft (50ft deep)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Mirror",
+    "rareness": 0.1
+  },
+  {
+    "name": "Kiln (empty)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Desk",
+    "rareness": 0.1
+  },
+  {
+    "name": "Battering Ram",
+    "rareness": 0.1
+  },
+  {
+    "name": "Fireworks",
+    "rareness": 0.1
+  },
+  {
+    "name": "Still (empty)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Still (ingredients prepped)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Brewer's Setup (empty)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Brewer's Setup (ingredients prepped)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Brewer's Setup (magical, bonus effects)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Enchanted Statue, weeping",
+    "rareness": 0.1
+  },
+  {
+    "name": "Floating Island, large (30ft)",
+    "rareness": 0.1
+  },
+  {
+    "name": "Giant's Footprint, fossilized",
+    "rareness": 0.1
+  },
+  {
+    "name": "Ritual Altar, stone",
+    "rareness": 0.1
+  },
+  {
+    "name": "Wishing Well, whispers",
+    "rareness": 0.05
+  },
+  {
+    "name": "Mystic Forge, eternal flame",
+    "rareness": 0.05
+  },
+  {
+    "name": "Cursed Mirror, trapped souls",
+    "rareness": 0.05
+  },
+  {
+    "name": "Dragon Egg, unhatched",
+    "rareness": 0.05
+  }
+]

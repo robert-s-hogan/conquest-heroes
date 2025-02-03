@@ -23,57 +23,53 @@
       :encounter="encounter"
       @close="isEditModalOpen = false"
       @update="handleUpdateEncounter"
-      @delete="handleDeleteEncounter"
+      @delete="handleDeleteEncounter(encounter.id)"
     />
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
-import EditEncounterModal from "@/components/Organisms/EditEncounterModal/EditEncounterModal.vue";
+import { ref, computed } from 'vue'
+import EditEncounterModal from '@/components/Organisms/EditEncounterModal/EditEncounterModal.vue'
 
 const props = defineProps({
   encounter: {
     type: Object,
     required: true,
   },
-});
+})
 
-const emit = defineEmits(["update-encounter", "delete-encounter"]);
+const emit = defineEmits(['update-encounter', 'delete-encounter'])
 
-const isEditModalOpen = ref(false);
+const isEditModalOpen = ref(false)
 
 const openEditModal = () => {
-  isEditModalOpen.value = true;
-};
+  isEditModalOpen.value = true
+}
 
 const handleUpdateEncounter = (updatedEncounter) => {
-  emit("update-encounter", updatedEncounter);
-  isEditModalOpen.value = false;
-};
+  emit('update-encounter', updatedEncounter)
+  isEditModalOpen.value = false
+}
 
 const handleDeleteEncounter = (encounterId) => {
-  emit("delete-encounter", encounterId);
-  isEditModalOpen.value = false;
-};
+  emit('delete-encounter', encounterId)
+  isEditModalOpen.value = false
+}
 
 const encounterTitle = computed(() => {
-  return `Encounter: #${props.encounter.encounterNumber || "N/A"}`;
-});
+  return `Encounter: #${props.encounter.encounterNumber || 'N/A'}`
+})
 
 const encounterDescription = computed(() => {
   return `Encounter Adj. XP: ${
-    props.encounter.encounterAdjustedExperience || "No data"
-  }, Encounter XP: ${props.encounter.encounterExperience || "No data"}
-  Players: ${props.encounter.numberOfPlayers || "N/A"}`;
-});
-
-const encounterPlayerCount = computed(() => {
-  return `Players: ${props.encounter.numberOfPlayers || "N/A"}`;
-});
+    props.encounter.encounterAdjustedExperience || 'No data'
+  }, Encounter XP: ${props.encounter.encounterExperience || 'No data'}
+  Players: ${props.encounter.numberOfPlayers || 'N/A'}`
+})
 
 const formattedDate = computed(() => {
-  const date = new Date(props.encounter.date);
-  return date.toLocaleDateString();
-});
+  const date = new Date(props.encounter.date)
+  return date.toLocaleDateString()
+})
 </script>

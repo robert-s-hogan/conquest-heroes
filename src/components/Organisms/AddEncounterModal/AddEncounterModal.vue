@@ -1,3 +1,4 @@
+<!-- src/components/Organisms/AddEncounterModal/AddEncounterModal.vue -->
 <template>
   <BaseModal
     :isOpen="props.isOpen"
@@ -14,13 +15,13 @@
       />
 
       <!-- Encounter Difficulty -->
-      <!-- <SelectField
+      <SelectField
         v-model="encounterDifficultyOption"
         label="Encounter Difficulty"
         :options="availableDifficultyOptionsRef"
         placeholder="Select difficulty"
         :disabled="availableDifficultyOptionsRef.length === 0"
-      /> -->
+      />
 
       <!-- Encounter Experience (read-only) -->
       <InputField
@@ -57,7 +58,12 @@
         placeholder="Select objective"
       />
 
-      <Button :loading="isSubmitting" variant="primary" class="w-full mt-4">
+      <Button
+        type="submit"
+        :loading="isSubmitting"
+        variant="primary"
+        class="w-full mt-4"
+      >
         Add Encounter
       </Button>
     </form>
@@ -65,7 +71,7 @@
 </template>
 
 <script setup>
-import { ref, computed, inject, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import InputField from '@/components/Atoms/BaseInput/BaseInput.vue'
 import SelectField from '@/components/Atoms/BaseSelect/BaseSelect.vue'
 import BaseModal from '@/components/Atoms/BaseModal/BaseModal.vue'
@@ -80,16 +86,24 @@ import {
   weatherOptions,
   objectivesOptions,
 } from '@/utils/encounterUtils'
-import { xpThresholdsByCharLvl } from '@/utils/xpTables'
+import {
+  characterAdvancementTable,
+  xpThresholdsByCharLvl,
+} from '@/utils/xpTables'
+import { fbFetchEncountersForCampaign } from '@/services/Encounter/encounterService'
 
 const props = defineProps({
   isOpen: {
     type: Boolean,
     default: false,
   },
+  campaign: {
+    type: Object,
+    default: null,
+  },
 })
 
-const emit = defineEmits(['close', 'submit'])
+const emit = defineEmits(['close', 'add'])
 
 const isSubmitting = ref(false)
 
@@ -102,49 +116,79 @@ const timeOfDay = ref('')
 const weather = ref('')
 const objectivesOfEncounter = ref('')
 
-// Inject currentCampaign from parent component or composable
-const currentCampaign = inject('currentCampaign')
+async function generateSimpleEncounterId(campaignId) {
+  if (!campaignId) {
+    console.error('generateSimpleEncounterId: No campaignId provided.')
+    return 1
+  }
 
-// Compute available difficulties based on remainingAdventuringDayXP
+  try {
+    // Fetch all existing encounters for the campaign
+    const encounters = await fbFetchEncountersForCampaign(campaignId)
+
+    // Find the highest existing encounterNumber
+    const highestId = encounters.length
+      ? Math.max(...encounters.map((enc) => enc.encounterNumber || 0))
+      : 0
+
+    // Return the next sequential ID
+    return highestId + 1
+  } catch (error) {
+    console.error('Error generating encounter ID:', error)
+    return 1 // Default to 1 if error occurs
+  }
+}
+
+const calculateRemainingXP = () => {
+  if (!props.campaign || !props.campaign.groupExperience) return 0
+
+  const groupXP = props.campaign.groupExperience
+  const levelData = characterAdvancementTable.find(
+    (lvl) => groupXP >= lvl.start && (lvl.end === null || groupXP <= lvl.end)
+  )
+
+  if (!levelData) return 0
+
+  const totalXPForLevel = levelData.end - levelData.start
+  const remainingXP = totalXPForLevel - (groupXP - levelData.start)
+  console.log('📊 Debug: Group XP:', groupXP, 'Remaining XP:', remainingXP)
+  return remainingXP
+}
+
 const availableDifficultyOptionsRef = computed(() => {
-  if (!currentCampaign || !currentCampaign.value) return []
+  if (!props.campaign || !props.campaign.groupLevel) return []
 
-  const xpThresholds = xpThresholdsByCharLvl[currentCampaign.value.groupLevel]
-  const remainingXP = currentCampaign.value.remainingAdventuringDayXP || 0
+  const xpThresholds = xpThresholdsByCharLvl[props.campaign.groupLevel]
+  if (!xpThresholds) return []
 
-  return Object.entries(xpThresholds)
-    .filter(([difficulty, xp]) => xp * numberOfPlayers.value <= remainingXP)
+  const remainingXP = calculateRemainingXP()
+  console.log('📊 Debug: Group Level:', props.campaign.groupLevel)
+  console.log('🛠️ Debug: XP Thresholds:', xpThresholds)
+  console.log('🔥 Debug: Computed Remaining XP:', remainingXP)
+
+  const filteredDifficulties = Object.entries(xpThresholds)
+    .filter(([difficulty, xp]) => xp <= remainingXP)
     .map(([difficulty]) => ({
       value: difficulty.charAt(0).toUpperCase() + difficulty.slice(1),
       label: difficulty.charAt(0).toUpperCase() + difficulty.slice(1),
     }))
-})
 
-// Watch for changes in availableDifficultyOptionsRef and set a default option
-watch(
-  availableDifficultyOptionsRef,
-  (newOptions) => {
-    if (newOptions.length > 0) {
-      encounterDifficultyOption.value = newOptions[0].value
-    } else {
-      encounterDifficultyOption.value = ''
-    }
-  },
-  { immediate: true }
-)
+  console.log('✅ Debug: Available Difficulties:', filteredDifficulties)
+  return filteredDifficulties
+})
 
 // Watch for changes in encounterDifficultyOption to update encounterExperience
 watch(
   () => encounterDifficultyOption.value,
   (newDifficulty) => {
-    if (!currentCampaign || !currentCampaign.value) return
+    if (!props.campaign) return []
 
-    const xpThresholds = xpThresholdsByCharLvl[currentCampaign.value.groupLevel]
+    const xpThresholds = xpThresholdsByCharLvl[props.campaign.groupLevel]
     if (!xpThresholds) return
 
     const difficultyKey = newDifficulty.toLowerCase()
     const xpPerPlayer = xpThresholds[difficultyKey] || 0
-    encounterExperience.value = xpPerPlayer * numberOfPlayers.value
+    encounterExperience.value = xpPerPlayer
   }
 )
 
@@ -162,28 +206,35 @@ const objectivesOptionsRef = ref(
   objectivesOptions.map((value) => ({ value, label: value }))
 )
 
-// Modify resetForm to remove setting encounterDifficultyOption
+// Reset form
 const resetForm = async () => {
   numberOfPlayers.value = 4
   encounterExperience.value = 0
 
-  // Use random functions from encounterUtils.js
+  // Use random utility functions
   mapTerrainType.value = getRandomMapTerrainType()
-  timeOfDay.value = getRandomTimeOfDay()
-  weather.value = getRandomWeather()
-  objectivesOfEncounter.value = getRandomObjectivesOfEncounter()
-
-  // Wait for computed properties to update
-  await nextTick()
-
-  // Set default or random difficulty option based on remaining XP
   if (availableDifficultyOptionsRef.value.length > 0) {
-    // Randomly select a difficulty from available options
     const randomIndex = Math.floor(
       Math.random() * availableDifficultyOptionsRef.value.length
     )
     encounterDifficultyOption.value =
-      availableDifficultyOptionsRef.value[randomIndex].value // Set random option
+      availableDifficultyOptionsRef.value[randomIndex].value
+  } else {
+    encounterDifficultyOption.value = ''
+  }
+  timeOfDay.value = getRandomTimeOfDay()
+  weather.value = getRandomWeather()
+  objectivesOfEncounter.value = getRandomObjectivesOfEncounter()
+
+  await nextTick()
+
+  // Randomly set difficulty from available options (if any)
+  if (availableDifficultyOptionsRef.value.length > 0) {
+    const randomIndex = Math.floor(
+      Math.random() * availableDifficultyOptionsRef.value.length
+    )
+    encounterDifficultyOption.value =
+      availableDifficultyOptionsRef.value[randomIndex].value
   } else {
     encounterDifficultyOption.value = ''
   }
@@ -194,25 +245,38 @@ const closeModal = () => {
   resetForm()
 }
 
-const handleSubmit = () => {
+const handleSubmit = async () => {
+  console.log('🚀 AddEncounterModal: handleSubmit triggered')
   isSubmitting.value = true
-  emit('submit', {
+
+  // Generate a unique sequential encounter ID
+  const newEncounterId = await generateSimpleEncounterId(props.campaign?.id)
+
+  // 2) Build a more comprehensive encounter object
+  const newEncounter = {
+    encounterNumber: newEncounterId, // Ensure it's unique
+    date: new Date().toISOString(),
+
+    // Fields from your form
     numberOfPlayers: Number(numberOfPlayers.value),
     encounterExperience: Number(encounterExperience.value),
-    encounterAdjustedExperience: Number(encounterExperience.value), // Assuming adjusted experience is the same
+    encounterAdjustedExperience: Number(encounterExperience.value),
     encounterDifficultyOption: encounterDifficultyOption.value,
     mapTerrainType: mapTerrainType.value,
     timeOfDay: timeOfDay.value,
     weather: weather.value,
     objectivesOfEncounter: objectivesOfEncounter.value,
-  })
+  }
+
+  emit('add', newEncounter)
   isSubmitting.value = false
   closeModal()
+  console.log('🚀 after emit in handleSubmit')
 }
 
-// Initialize form on component mount
+// Re-init form whenever the modal is opened or the campaign changes
 watch(
-  () => currentCampaign?.value,
+  () => props.campaign,
   (newVal) => {
     if (newVal) {
       resetForm()

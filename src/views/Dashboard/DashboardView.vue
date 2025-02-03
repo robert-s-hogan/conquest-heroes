@@ -1,81 +1,83 @@
-<!-- Dashboard.vue -->
 <template>
   <div class="min-h-screen bg-gray-100 flex flex-col">
     <div class="flex flex-1">
       <aside class="w-64 bg-white p-4 shadow-md">
         <nav>
-          <!-- <ul>
-            <li class="mb-4">
-              <a href="#" class="text-blue-500 hover:underline">Campaigns</a>
-            </li>
-            <li class="mb-4">
-              <a href="#" class="text-blue-500 hover:underline">Encounters</a>
-            </li>
-          </ul> -->
+          <!-- Navigation items (if needed) -->
         </nav>
       </aside>
       <main class="flex-1 p-4">
-        <div class="flex items-center justify-between mb-6">
-          <Heading title="Conquest of Heroes v2.5 Framework" level="1" />
+        <!-- LOADING INDICATOR -->
+        <div
+          v-if="campaignLoading || encounterLoading"
+          class="flex flex-col justify-center items-center h-full space-y-4"
+        >
+          <div
+            class="w-24 h-24 border-4 border-gray-300 border-t-blue-500 rounded-full animate-spin"
+          ></div>
+
+          <p class="text-gray-500">Loading data...</p>
+          <!-- or a spinner component -->
         </div>
 
-        <!-- Campaign Section -->
-        <div class="mb-6">
-          <div class="flex items-center justify-between mb-4">
-            <Heading title="Campaign Management" level="2" />
-            <div class="flex space-x-4">
-              <button
-                v-if="!currentCampaign"
-                @click="isModalOpen = true"
-                class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-              >
-                Add Campaign
-              </button>
+        <!-- ACTUAL CONTENT (only shows if NOT loading) -->
+        <div v-else>
+          <div class="flex items-center justify-between mb-6">
+            <Heading title="Conquest of Heroes v2.5 Framework" level="1" />
+          </div>
+          <!-- Campaign Section -->
+          <div class="mb-6">
+            <div class="flex items-center justify-between mb-4">
+              <Heading title="Campaign Management" level="2" />
+              <div class="flex space-x-4">
+                <Button
+                  v-if="!currentCampaign"
+                  variant="primary"
+                  @click="isModalOpen = true"
+                >
+                  Add Campaign
+                </Button>
 
-              <button
-                v-else
-                @click="isEditModalOpen = true"
-                class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-              >
-                Edit Campaign
-              </button>
+                <Button
+                  v-else
+                  variant="primary"
+                  @click="isEditModalOpen = true"
+                >
+                  Edit Campaign
+                </Button>
 
-              <Button
-                v-if="currentCampaign"
-                variant="secondary"
-                @click="isDeleteConfirmModalOpen = true"
-                :loading="isDeleting"
-              >
-                Delete Campaign
-              </Button>
+                <Button
+                  v-if="currentCampaign"
+                  variant="secondary"
+                  @click="isDeleteConfirmModalOpen = true"
+                  :loading="campaignLoading"
+                >
+                  Delete Campaign
+                </Button>
+              </div>
             </div>
+
+            <DataSection
+              v-if="playerProgression.length > 0"
+              title="Player Progression"
+              :items="playerProgression"
+            />
           </div>
 
-          <DataSection
-            v-if="playerProgression.length > 0"
-            title="Player Progression"
-            :items="playerProgression"
-          />
-        </div>
-
-        <!-- Encounter Section -->
-        <div v-if="currentCampaign" class="mb-6">
-          <div class="flex items-center justify-between mb-4">
-            <Heading title="Encounters" level="2" />
-            <div>
-              <button
-                @click="handleAddEncounter"
-                class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-              >
+          <!-- Encounter Section -->
+          <div v-if="currentCampaign" class="mb-6">
+            <div class="flex items-center justify-between mb-4">
+              <Heading title="Encounters" level="2" class="mb-0" />
+              <Button variant="primary" @click="isEncounterModalOpen = true">
                 Generate Encounter
-              </button>
+              </Button>
             </div>
           </div>
 
           <!-- List of Encounters -->
           <div
-            v-if="encounters && encounters.length > 0"
-            class="border border-2 border-black"
+            v-if="encounters.length > 0"
+            class="border border-2 border-black rounded"
           >
             <EncounterItem
               v-for="encounter in encounters"
@@ -85,6 +87,7 @@
               @delete-encounter="handleDeleteEncounter"
             />
           </div>
+          <div v-else class="text-gray-500">No encounters available.</div>
         </div>
 
         <!-- Modals -->
@@ -112,119 +115,167 @@
           @close="isEditModalOpen = false"
           @update="handleEditCampaign"
         />
+
+        <!-- Add Encounter Modal -->
+        <AddEncounterModal
+          v-if="isEncounterModalOpen"
+          :isOpen="isEncounterModalOpen"
+          :campaign="currentCampaign"
+          @close="isEncounterModalOpen = false"
+          @add="handleAddEncounter"
+        />
       </main>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch, provide } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useCampaignStore } from '../../store/campaignStore'
+import { useEncounters } from '@/composables/useEncounters'
 
 import Button from '@/components/Atoms/BaseButton/BaseButton.vue'
 import Heading from '@/components/Atoms/BaseHeading/BaseHeading.vue'
 import DataSection from '@/components/Organisms/DataSection/DataSection.vue'
-import EncounterItem from '@/components/Molecules/EncounterItem/EncounterItem.vue'
-import AddCampaignModal from '@/components/Organisms/AddCampaignModal/AddCampaignModal.vue'
-import AddEncounterModal from '@/components/Organisms/AddEncounterModal/AddEncounterModal.vue'
 import ConfirmationModal from '@/components/Molecules/ConfirmationModal/ConfirmationModal.vue'
+
+import AddCampaignModal from '@/components/Organisms/AddCampaignModal/AddCampaignModal.vue'
 import EditCampaignModal from '@/components/Organisms/EditCampaignModal/EditCampaignModal.vue'
 
-import { useCampaignData } from '@/composables/Campaign/useCampaignData'
-import { useEncounter } from '@/composables/Encounter/useEncounter'
+import EncounterItem from '@/components/Molecules/EncounterItem/EncounterItem.vue'
+import AddEncounterModal from '@/components/Organisms/AddEncounterModal/AddEncounterModal.vue'
+
 import { generateEncounterData } from '@/utils/encounterDataGenerator'
 
-// Campaign composable setup
+// Initialize Campaign Store
+const campaignStore = useCampaignStore()
 const {
-  isModalOpen,
-  isEditModalOpen,
-  playerProgression,
+  campaigns,
   currentCampaign,
-  isDeleting,
+  loading: campaignLoading,
+  error: campaignError,
+} = storeToRefs(campaignStore)
+
+const {
   loadCampaigns,
-  handleAddCampaign,
-  handleEditCampaign,
-  handleDeleteCampaign,
-} = useCampaignData()
+  addNewCampaign,
+  editExistingCampaign,
+  deleteExistingCampaign,
+} = campaignStore
 
-// Encounter-related references
-const isEncounterModalOpen = ref(false)
-const isDeletingEncounter = ref(false)
-
-// Define campaignIdRef as a computed property
-const campaignIdRef = computed(() => currentCampaign.value?.id)
-provide('currentCampaign', currentCampaign)
-
-// Use useEncounter with campaignIdRef
+// Encounter Composable
 const {
   encounters,
-  fetchEncounters,
-  addEncounter,
-  deleteEncounter,
-  updateEncounter,
-} = useEncounter(campaignIdRef)
+  loading: encounterLoading,
+  error: encounterError,
+  fetchEncountersForCampaign,
+  addNewEncounter,
+  updateExistingEncounter,
+  deleteExistingEncounter,
+} = useEncounters()
 
-// Fetch encounters when campaignId changes
-watch(
-  campaignIdRef,
-  (newCampaignId) => {
-    if (newCampaignId) {
-      fetchEncounters()
-    } else {
-      // Reset encounters
-      encounters.value = []
-    }
-  },
-  { immediate: true }
-)
+// Compute "playerProgression"
+const playerProgression = computed(() => {
+  if (!currentCampaign.value) return []
+  return [
+    { label: 'Group Level', value: currentCampaign.value.groupLevel },
+    {
+      label: 'Adventuring Day XP Limit',
+      value: currentCampaign.value.adventuringDayXpLimit,
+    },
+    {
+      label: 'Death Penalty Multiplier',
+      value: `${currentCampaign.value.deathPenaltyMultiplier}%`,
+    },
+    {
+      label: 'Cumulative Gold Earned',
+      value: currentCampaign.value.cumulativeGoldEarned,
+    },
+    {
+      label: 'Current Group Experience',
+      value: currentCampaign.value.groupExperience,
+    },
+    // etc...
+  ]
+})
 
-const handleAddEncounter = async () => {
-  if (currentCampaign.value?.id) {
-    console.log('Encounters before generating:', encounters.value)
-
-    const encounterData = generateEncounterData(
-      currentCampaign.value,
-      encounters.value
-    )
-
-    // Debugging encounter data
-    console.log('Generated encounter data:', encounterData)
-
-    // Check if the encounterData is valid
-    if (!encounterData.players || encounterData.players.length === 0) {
-      console.error(
-        'Encounter data has missing or undefined players',
-        encounterData
-      )
-      return // Prevent the call if data is invalid
-    }
-
-    await addEncounter({
-      ...encounterData,
-      campaignId: currentCampaign.value.id,
-    })
-  }
-}
-
-const handleUpdateEncounter = async (updatedEncounter) => {
-  if (currentCampaign.value?.id) {
-    await updateEncounter(updatedEncounter)
-    // No need to refetch encounters; they are reactive
-  }
-}
-
-const handleDeleteEncounter = async (encounterId) => {
-  if (currentCampaign.value?.id) {
-    await deleteEncounter(encounterId)
-  }
-}
-
+// Modal States
+const isModalOpen = ref(false)
+const isEditModalOpen = ref(false)
 const isDeleteConfirmModalOpen = ref(false)
+const isEncounterModalOpen = ref(false)
 
-const confirmDeleteCampaign = async () => {
+// Campaign Handlers
+const handleAddCampaign = async (campaignData) => {
+  await addNewCampaign(
+    campaignData.campaignName,
+    campaignData.description,
+    campaignData.startXp
+  )
+  isModalOpen.value = false
+}
+const handleEditCampaign = async (updatedCampaign) => {
+  await editExistingCampaign(updatedCampaign)
+  isEditModalOpen.value = false
+}
+const handleDeleteCampaign = async () => {
+  if (!currentCampaign.value) return
+  await deleteExistingCampaign(currentCampaign.value.id)
   isDeleteConfirmModalOpen.value = false
+}
+const confirmDeleteCampaign = async () => {
   await handleDeleteCampaign()
 }
 
-// Load campaigns on mount
-onMounted(loadCampaigns)
+// Handlers
+const handleAddEncounter = async (encounterData) => {
+  console.log('👩‍🚀 Parent saw @add event with encounterData:', encounterData)
+  // Pass campaignData as second arg
+  await addNewEncounter(encounterData, currentCampaign.value)
+  isEncounterModalOpen.value = false
+}
+
+const handleUpdateEncounter = async (updatedEncounter) => {
+  await updateExistingEncounter(
+    updatedEncounter.id,
+    updatedEncounter,
+    currentCampaign.value
+  )
+}
+
+const handleDeleteEncounter = async (encounterId) => {
+  if (!encounterId || !currentCampaign.value?.id) {
+    console.error(
+      'Invalid encounterId or campaignId in handleDeleteEncounter:',
+      encounterId,
+      currentCampaign.value?.id
+    )
+    return
+  }
+  await deleteExistingEncounter(encounterId, currentCampaign.value.id)
+}
+
+// onMounted and watch
+onMounted(async () => {
+  await loadCampaigns()
+  if (currentCampaign.value?.id) {
+    // Pass BOTH the campaignId and the campaign object
+    await fetchEncountersForCampaign(
+      currentCampaign.value.id,
+      currentCampaign.value
+    )
+  }
+})
+
+watch(
+  () => currentCampaign.value?.id,
+  async (newCampaignId) => {
+    if (newCampaignId) {
+      await fetchEncountersForCampaign(newCampaignId, currentCampaign.value)
+    } else {
+      encounters.value = []
+    }
+  }
+)
 </script>

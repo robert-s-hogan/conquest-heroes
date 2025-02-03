@@ -22,7 +22,7 @@ export const xpThresholdsByCharLvl = {
   18: { easy: 2100, medium: 4200, hard: 6300, deadly: 9500 },
   19: { easy: 2400, medium: 4900, hard: 7300, deadly: 10900 },
   20: { easy: 2800, medium: 5700, hard: 8500, deadly: 12700 },
-};
+}
 
 // Recommended XP limits for a full adventuring day, by level
 export const adventuringDayXpLimits = [
@@ -47,7 +47,7 @@ export const adventuringDayXpLimits = [
   { level: 18, xp: 27000 },
   { level: 19, xp: 30000 },
   { level: 20, xp: 40000 },
-];
+]
 
 // Character advancement table by level
 export const characterAdvancementTable = [
@@ -71,7 +71,7 @@ export const characterAdvancementTable = [
   { level: 18, start: 265000, end: 304999, needed: 40000, total: 569999 },
   { level: 19, start: 305000, end: 354999, needed: 50000, total: 659999 },
   { level: 20, start: 355000, end: null, needed: null, total: null },
-];
+]
 
 export function calculateXpFields(playerStartExperience) {
   const xpTotalToLevelTable = [
@@ -161,46 +161,50 @@ export function calculateXpFields(playerStartExperience) {
       level: 19,
     },
     { xpStart: 355000, xpEnd: null, xpNeeded: null, xpTotal: null, level: 20 },
-  ];
+  ]
 
-  let groupLevel = 1;
-  let xpThresholds = { easy: 0, medium: 0, hard: 0, deadly: 0 };
-  let adventuringDayXpLimit = 0;
+  let groupLevel = 1
+  let xpThresholds = { easy: 0, medium: 0, hard: 0, deadly: 0 }
+  let adventuringDayXpLimit = 0
 
   for (const levelData of xpTotalToLevelTable) {
     if (
       playerStartExperience >= levelData.xpStart &&
       (levelData.xpEnd === null || playerStartExperience <= levelData.xpEnd)
     ) {
-      groupLevel = levelData.level;
+      groupLevel = levelData.level
       xpThresholds = xpThresholdsByCharLvl[groupLevel] || {
         easy: 0,
         medium: 0,
         hard: 0,
         deadly: 0,
-      };
+      }
 
       // Corrected to use adventuringDayXpLimits
       const xpLimitData = adventuringDayXpLimits.find(
         (dayXp) => dayXp.level === groupLevel
-      );
+      )
 
-      adventuringDayXpLimit = xpLimitData ? xpLimitData.xp : 0;
-      break;
+      adventuringDayXpLimit = xpLimitData ? xpLimitData.xp : 0
+      console.log('🎯 Debug: Adventuring Day XP Limit:', adventuringDayXpLimit)
+
+      break
     }
   }
+
+  console.log('✅ Found Group Level:', groupLevel)
 
   return {
     groupLevel,
     xpThresholds,
     adventuringDayXpLimit,
     currentAdventuringDayXp: adventuringDayXpLimit,
-  };
+  }
 }
 
 export function calculateRemainingAdventuringDayXP(
   adventuringDayXpLimit,
   usedXp
 ) {
-  return adventuringDayXpLimit - usedXp;
+  return adventuringDayXpLimit - usedXp
 }
