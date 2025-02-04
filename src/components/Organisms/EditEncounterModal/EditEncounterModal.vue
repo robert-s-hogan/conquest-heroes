@@ -25,7 +25,8 @@
         </div>
       </div>
 
-      <div class="flex justify-between mt-6">
+      <!-- Action Buttons -->
+      <div class="flex flex-wrap gap-4 mt-6">
         <Button
           type="button"
           variant="danger"
@@ -33,6 +34,22 @@
           :loading="isDeleting"
         >
           Delete Encounter
+        </Button>
+        <Button
+          type="button"
+          variant="warning"
+          @click="handleFail"
+          :loading="isSubmitting"
+        >
+          Fail Encounter
+        </Button>
+        <Button
+          type="button"
+          variant="success"
+          @click="handleComplete"
+          :loading="isSubmitting"
+        >
+          Complete Encounter
         </Button>
         <Button type="submit" variant="primary" :loading="isSubmitting">
           Save Changes
@@ -71,7 +88,8 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['close', 'update', 'delete'])
+// Now include 'complete' and 'fail' events
+const emit = defineEmits(['close', 'update', 'delete', 'complete', 'fail'])
 
 const encounterData = reactive({ ...props.encounter })
 const isSubmitting = ref(false)
@@ -154,7 +172,7 @@ const tabs = [
     component: MapDetailsContent,
     props: {
       encounterData, // pass the entire encounterData
-      terrainOptions: terrainOptionsUnwrapped, // e.g., [ { value: 'Desert', label: 'Desert' }, ... ]
+      terrainOptions: terrainOptionsUnwrapped,
       timeOfDayOptions: timeOfDayOptionsUnwrapped,
       weatherOptions: weatherOptionsUnwrapped,
       objectivesOptions: objectivesOptionsUnwrapped,
@@ -226,6 +244,34 @@ const handleDelete = async () => {
     console.error('Delete failed:', error)
   } finally {
     isDeleting.value = false
+    closeModal()
+  }
+}
+
+// New function: complete the encounter
+const handleComplete = async () => {
+  isSubmitting.value = true
+  try {
+    // Emit a 'complete' event with the encounter's identifier
+    emit('complete', encounterData.encounterNumber)
+  } catch (error) {
+    console.error('Complete encounter failed:', error)
+  } finally {
+    isSubmitting.value = false
+    closeModal()
+  }
+}
+
+// New function: fail the encounter
+const handleFail = async () => {
+  isSubmitting.value = true
+  try {
+    // Emit a 'fail' event with the encounter's identifier
+    emit('fail', encounterData.encounterNumber)
+  } catch (error) {
+    console.error('Fail encounter failed:', error)
+  } finally {
+    isSubmitting.value = false
     closeModal()
   }
 }

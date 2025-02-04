@@ -190,6 +190,60 @@ export const useEncounterStore = defineStore('encounter', () => {
     }
   }
 
+  async function completeEncounter(encounterId) {
+    // Find the encounter in the local state
+    const encounter = encounters.value.find((e) => e.id === encounterId)
+    if (!encounter) {
+      console.error(`Encounter with ID ${encounterId} not found.`)
+      return
+    }
+
+    // Mark the encounter as complete
+    const updatedEncounter = {
+      ...encounter,
+      status: 'completed',
+      completedAt: new Date().toISOString(),
+    }
+    await updateExistingEncounter(encounterId, updatedEncounter)
+
+    // Update the campaign's experience by adding the encounter's experience
+    const currentCampaign = campaignStore.currentCampaign
+    const currentExp = currentCampaign.groupExperience || 0
+    const addedExp = encounter.encounterExperience || 0
+    const newGroupExperience = currentExp + addedExp
+
+    const updatedCampaign = {
+      ...currentCampaign,
+      groupExperience: newGroupExperience,
+    }
+    await campaignStore.editExistingCampaign(updatedCampaign)
+
+    // Optionally, update the remaining adventuring day XP if you use that for encounter difficulty
+    await updateRemainingAdventuringDayXP()
+  }
+
+  /**
+   * Mark an encounter as failed.
+   * (You can also add penalty logic here if needed.)
+   */
+  async function failEncounter(encounterId) {
+    const encounter = encounters.value.find((e) => e.id === encounterId)
+    if (!encounter) {
+      console.error(`Encounter with ID ${encounterId} not found.`)
+      return
+    }
+
+    // Mark the encounter as failed
+    const updatedEncounter = {
+      ...encounter,
+      status: 'failed',
+      completedAt: new Date().toISOString(),
+    }
+    await updateExistingEncounter(encounterId, updatedEncounter)
+
+    // Optionally, if a failed encounter should modify campaign XP (e.g. deduct XP), add that logic here.
+  }
+
   // ===========================
   // Return from defineStore
   // ===========================
@@ -204,5 +258,7 @@ export const useEncounterStore = defineStore('encounter', () => {
     updateExistingEncounter,
     deleteExistingEncounter,
     updateRemainingAdventuringDayXP,
+    completeEncounter,
+    failEncounter,
   }
 })
