@@ -6,6 +6,14 @@
     size="large"
     @close="closeModal"
   >
+    <!-- Status Indicator -->
+    <div v-if="encounter.status" class="mb-4">
+      <span :class="statusClass">{{ statusText }}</span>
+      <span v-if="encounter.status !== 'in-progress'" class="ml-2">
+        ({{ outcomeIndicator }})
+      </span>
+    </div>
+
     <form @submit.prevent="handleSubmit">
       <!-- Wrap content in a scrollable container -->
       <div class="max-h-[90vh] overflow-y-auto">
@@ -26,7 +34,7 @@
       </div>
 
       <!-- Action Buttons -->
-      <div class="flex flex-wrap gap-4 mt-6">
+      <div class="flex justify-between items-center gap-4 mt-6">
         <Button
           type="button"
           variant="danger"
@@ -35,22 +43,20 @@
         >
           Delete Encounter
         </Button>
-        <Button
-          type="button"
-          variant="warning"
-          @click="handleFail"
-          :loading="isSubmitting"
-        >
-          Fail Encounter
-        </Button>
-        <Button
-          type="button"
-          variant="success"
-          @click="handleComplete"
-          :loading="isSubmitting"
-        >
-          Complete Encounter
-        </Button>
+
+        <!-- Only allow status change if the encounter is in progress -->
+        <div>
+          <select
+            id="status"
+            v-model="encounterData.status"
+            class="w-full p-2 border border-gray-300 rounded"
+          >
+            <option value="in-progress">In Progress</option>
+            <option value="completed">Completed</option>
+            <option value="failed">Failed</option>
+          </select>
+        </div>
+
         <Button type="submit" variant="primary" :loading="isSubmitting">
           Save Changes
         </Button>
@@ -60,12 +66,13 @@
 </template>
 
 <script setup>
-import { ref, watch, reactive } from 'vue'
+import { computed, ref, watch, reactive } from 'vue'
 import Modal from '@/components/Atoms/BaseModal/BaseModal.vue'
 import Button from '@/components/Atoms/BaseButton/BaseButton.vue'
 import CaravanContent from '@/components/Atoms/CaravanContent/CaravanContent.vue'
 import MapDetailsContent from '@/components/Atoms/MapDetailsContent/MapDetailsContent.vue'
 import XPDetailsContent from '@/components/Atoms/XPDetailsContent/XPDetailsContent.vue'
+import AwardedContent from '@/components/Atoms/AwardedContent/AwardedContent.vue'
 import Tabs from '@/components/Organisms/BaseTabs/BaseTabs.vue'
 
 import {
@@ -78,18 +85,32 @@ import {
 } from '@/utils/encounterUtils'
 
 const props = defineProps({
-  isOpen: {
-    type: Boolean,
-    required: true,
-  },
-  encounter: {
-    type: Object,
-    required: true,
-  },
+  isOpen: { type: Boolean, required: true },
+  encounter: { type: Object, required: true },
 })
 
-// Now include 'complete' and 'fail' events
+// Include 'complete' and 'fail' events
 const emit = defineEmits(['close', 'update', 'delete', 'complete', 'fail'])
+
+const statusText = computed(() => {
+  if (props.encounter.status === 'completed')
+    return 'Encounter Completed Successfully'
+  if (props.encounter.status === 'failed') return 'Encounter Failed'
+  return 'Encounter In Progress'
+})
+
+const statusClass = computed(() => {
+  if (props.encounter.status === 'completed') return 'text-green-600 font-bold'
+  if (props.encounter.status === 'failed') return 'text-red-600 font-bold'
+  return 'text-gray-600'
+})
+
+// New computed property to explicitly show the outcome:
+const outcomeIndicator = computed(() => {
+  if (props.encounter.status === 'completed') return 'Success'
+  if (props.encounter.status === 'failed') return 'Failure'
+  return 'Pending'
+})
 
 const encounterData = reactive({ ...props.encounter })
 const isSubmitting = ref(false)
@@ -117,52 +138,12 @@ const objectivesOptionsUnwrapped = objectivesOptions.map((value) => ({
   label: value,
 }))
 
-const possibleItemsPerLocation = {
-  MAP: [
-    'Trap - Grease Trap',
-    'Beast (Ox)',
-    "Cartographer's Station (empty)",
-    'Hidden Pitfall',
-    'Magical Barrier',
-  ],
-  'Suspended Cage': [
-    'Ladder, metal, 25ft telescopic',
-    'Rope Ladder, wooden',
-    'Net Trap',
-  ],
-  'Carnival Tent': ['Backpack (empty)', 'Storage Chest', 'Magic Mirror'],
-  'OPPOSITION START': [
-    'Hot Air Balloon, tethered, unoccupied',
-    'Ambush Point',
-    'Scout Tower',
-  ],
-  Den: ['Fountain (holy water)', 'Den (empty)', 'Alchemy Lab'],
-  'Cannon, gunpowder loaded': [
-    'Levitating Stones, orbiting',
-    'Cannon Ball Rack',
-    'Gunpowder Keg',
-  ],
-  Construct: ['Construct, large', 'Guard Construct', 'Repair Station'],
-  'Time-Worn Reliquary, sacred contents': [
-    'Ancient Tome',
-    'Sacred Relic',
-    'Mystic Artifact',
-  ],
-  'PLAYER START': [
-    'Levitating Stones, orbiting',
-    'Construct, large',
-    'Player Beacon',
-  ],
-}
-
 const tabs = [
   {
     id: 'xp-details',
     label: 'XP Details',
     component: XPDetailsContent,
-    props: {
-      encounterData, // your reactive encounterData object
-    },
+    props: { encounterData },
     variant: 'danger',
     loading: false,
   },
@@ -171,7 +152,7 @@ const tabs = [
     label: 'Map Details',
     component: MapDetailsContent,
     props: {
-      encounterData, // pass the entire encounterData
+      encounterData,
       terrainOptions: terrainOptionsUnwrapped,
       timeOfDayOptions: timeOfDayOptionsUnwrapped,
       weatherOptions: weatherOptionsUnwrapped,
@@ -184,17 +165,19 @@ const tabs = [
     id: 'caravan',
     label: 'Caravan',
     component: CaravanContent,
-    props: {
-      encounterData,
-    },
+    props: { encounterData },
     variant: 'primary',
     loading: false,
   },
+  {
+    id: 'awarded',
+    label: 'Awarded',
+    component: AwardedContent,
+    props: { encounterData },
+    variant: 'secondary',
+    loading: false,
+  },
 ]
-
-function updateEncounterData(newData) {
-  Object.assign(encounterData, newData)
-}
 
 if (
   !encounterData.mapLocations ||
@@ -239,7 +222,8 @@ const handleSubmit = async () => {
 const handleDelete = async () => {
   isDeleting.value = true
   try {
-    await emit('delete', encounterData.encounterNumber)
+    // Pass the unique id from Firestore
+    await emit('delete', encounterData.id)
   } catch (error) {
     console.error('Delete failed:', error)
   } finally {
@@ -248,12 +232,11 @@ const handleDelete = async () => {
   }
 }
 
-// New function: complete the encounter
-const handleComplete = async () => {
+function completeEncounter() {
   isSubmitting.value = true
   try {
-    // Emit a 'complete' event with the encounter's identifier
-    emit('complete', encounterData.encounterNumber)
+    // Emit a 'complete' event with the encounter's id.
+    emit('complete', encounterData.id)
   } catch (error) {
     console.error('Complete encounter failed:', error)
   } finally {
@@ -262,12 +245,11 @@ const handleComplete = async () => {
   }
 }
 
-// New function: fail the encounter
-const handleFail = async () => {
+function failEncounter() {
   isSubmitting.value = true
   try {
-    // Emit a 'fail' event with the encounter's identifier
-    emit('fail', encounterData.encounterNumber)
+    // Emit a 'fail' event with the encounter's id.
+    emit('fail', encounterData.id)
   } catch (error) {
     console.error('Fail encounter failed:', error)
   } finally {

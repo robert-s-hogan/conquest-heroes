@@ -1,4 +1,4 @@
-<!-- EncounterItem.vue -->
+<!-- EncounterItem.vue (After) -->
 <template>
   <div
     class="px-1 rounded shadow cursor-pointer border-1 bg-gray-50 border-black"
@@ -24,6 +24,8 @@
       @close="isEditModalOpen = false"
       @update="handleUpdateEncounter"
       @delete="handleDeleteEncounter(encounter.id)"
+      @complete="handleEncounterComplete"
+      @fail="handleEncounterFail"
     />
   </div>
 </template>
@@ -31,6 +33,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import EditEncounterModal from '@/components/Organisms/EditEncounterModal/EditEncounterModal.vue'
+import { useEncounterStore } from '@/store/encounterStore'
 
 const props = defineProps({
   encounter: {
@@ -40,6 +43,9 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update-encounter', 'delete-encounter'])
+
+// Import the encounter store so we can call complete/fail actions.
+const encounterStore = useEncounterStore()
 
 const isEditModalOpen = ref(false)
 
@@ -72,4 +78,14 @@ const formattedDate = computed(() => {
   const date = new Date(props.encounter.date)
   return date.toLocaleDateString()
 })
+
+function handleEncounterComplete(encounterId) {
+  // Call the completeEncounter action in the store with the unique id.
+  encounterStore.completeEncounter(encounterId)
+}
+
+function handleEncounterFail(encounterId) {
+  // Call the failEncounter action in the store with the unique id.
+  encounterStore.failEncounter(encounterId)
+}
 </script>

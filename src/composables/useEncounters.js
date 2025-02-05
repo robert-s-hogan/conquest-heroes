@@ -1,43 +1,29 @@
-// src/composables/useEncounters.js (Final)
-
 import { ref } from 'vue'
 import {
-  fbFetchEncountersForCampaign,
+  fbfetchEncounters,
   fbAddEncounter,
   fbUpdateEncounter,
   fbDeleteEncounter,
   fbFetchEncounterById,
 } from '@/services/Encounter/encounterService'
 import { calculateEncounterFields } from '@/utils/calculateEncounterFields'
-// or: import { generateEncounterData } from '@/utils/encounterDataGenerator'
 
 export function useEncounters() {
-  // Reactive State
   const encounters = ref([])
   const currentEncounter = ref(null)
   const loading = ref(false)
   const error = ref(null)
 
-  /**
-   * 1) Fetch Encounters for a Campaign
-   * Make sure to pass campaignData as the second arg if you need xpThresholds, etc.
-   */
-  async function fetchEncountersForCampaign(campaignId, campaignData) {
+  // Fetch encounters for a campaign
+  async function fetchEncounters(campaignId, campaignData) {
     loading.value = true
     error.value = null
     try {
-      const rawData = await fbFetchEncountersForCampaign(campaignId)
-
-      // If no campaignData is provided, we can skip or safely handle
-      // e.g. if (!campaignData) { encounters.value = rawData; return; }
-
-      // Map and derive
+      const rawData = await fbfetchEncounters(campaignId)
       encounters.value = rawData.map((enc) => {
         const updated = calculateEncounterFields(enc, campaignData)
         return { ...enc, ...updated }
       })
-
-      // Optionally set first as current
       currentEncounter.value = encounters.value[0] || null
     } catch (err) {
       error.value = err
@@ -47,25 +33,20 @@ export function useEncounters() {
     }
   }
 
-  /**
-   * 2) Add a New Encounter
-   */
-  async function addNewEncounter(baseEncounterData, campaignData) {
+  // Add a new encounter
+  async function addEncounter(baseEncounterData, campaignData) {
     loading.value = true
     error.value = null
     try {
-      // If you need xpThresholds, ensure campaignData is passed in
       const derived = calculateEncounterFields(baseEncounterData, campaignData)
       const newEncounterData = {
         ...baseEncounterData,
         ...derived,
         createdAt: new Date().toISOString(),
+        status: 'in-progress', // Encounter starts as "in-progress"
       }
 
-      // Firestore add: note signature is (campaignId, encounterData)
       const doc = await fbAddEncounter(campaignData.id, newEncounterData)
-
-      // Local state
       encounters.value.push(doc)
       currentEncounter.value = doc
     } catch (err) {
@@ -76,16 +57,14 @@ export function useEncounters() {
     }
   }
 
-  /**
-   * 3) Edit/Update an Encounter
-   */
-  async function updateExistingEncounter(
+  // Update an existing encounter
+  async function updateEncounter(
     encounterId,
     updatedEncounterData,
     campaignData
   ) {
     if (!encounterId) {
-      console.error('No encounterId provided to updateExistingEncounter.')
+      console.error('No encounterId provided to updateEncounter.')
       return
     }
     loading.value = true
@@ -96,10 +75,7 @@ export function useEncounters() {
         campaignData
       )
       const finalData = { ...updatedEncounterData, ...derived }
-
       await fbUpdateEncounter(campaignData.id, encounterId, finalData)
-
-      // Update local
       const index = encounters.value.findIndex((enc) => enc.id === encounterId)
       if (index !== -1) {
         encounters.value[index] = { ...encounters.value[index], ...finalData }
@@ -115,18 +91,15 @@ export function useEncounters() {
     }
   }
 
-  /**
-   * 4) Delete an Encounter
-   */
-  async function deleteExistingEncounter(encounterId, campaignId) {
+  // Delete an encounter
+  async function deleteEncounter(encounterId, campaignId) {
     if (!encounterId || !campaignId) {
-      console.error('Invalid arguments to deleteExistingEncounter:', {
+      console.error('Invalid arguments to deleteEncounter:', {
         encounterId,
         campaignId,
       })
       return
     }
-
     try {
       await fbDeleteEncounter(campaignId, encounterId)
       encounters.value = encounters.value.filter(
@@ -138,9 +111,7 @@ export function useEncounters() {
     }
   }
 
-  /**
-   * 5) Fetch Single Encounter by ID
-   */
+  // Load a single encounter by ID
   async function loadEncounterById(encounterId, campaignData) {
     loading.value = true
     error.value = null
@@ -161,16 +132,14 @@ export function useEncounters() {
   }
 
   return {
-    // State
     encounters,
     currentEncounter,
     loading,
     error,
-    // Actions
-    fetchEncountersForCampaign,
-    addNewEncounter,
-    updateExistingEncounter,
-    deleteExistingEncounter,
+    fetchEncounters,
+    addEncounter,
+    updateEncounter,
+    deleteEncounter,
     loadEncounterById,
   }
 }

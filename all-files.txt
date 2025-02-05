@@ -93,7 +93,7 @@ export const useAuth = () => {
 
 import { ref } from 'vue'
 import {
-  fbFetchEncountersForCampaign,
+  fbfetchEncounters,
   fbAddEncounter,
   fbUpdateEncounter,
   fbDeleteEncounter,
@@ -113,11 +113,11 @@ export function useEncounters() {
    * 1) Fetch Encounters for a Campaign
    * Make sure to pass campaignData as the second arg if you need xpThresholds, etc.
    */
-  async function fetchEncountersForCampaign(campaignId, campaignData) {
+  async function fetchEncounters(campaignId, campaignData) {
     loading.value = true
     error.value = null
     try {
-      const rawData = await fbFetchEncountersForCampaign(campaignId)
+      const rawData = await fbfetchEncounters(campaignId)
 
       // If no campaignData is provided, we can skip or safely handle
       // e.g. if (!campaignData) { encounters.value = rawData; return; }
@@ -141,7 +141,7 @@ export function useEncounters() {
   /**
    * 2) Add a New Encounter
    */
-  async function addNewEncounter(baseEncounterData, campaignData) {
+  async function addEncounter(baseEncounterData, campaignData) {
     loading.value = true
     error.value = null
     try {
@@ -170,13 +170,13 @@ export function useEncounters() {
   /**
    * 3) Edit/Update an Encounter
    */
-  async function updateExistingEncounter(
+  async function updateEncounter(
     encounterId,
     updatedEncounterData,
     campaignData
   ) {
     if (!encounterId) {
-      console.error('No encounterId provided to updateExistingEncounter.')
+      console.error('No encounterId provided to updateEncounter.')
       return
     }
     loading.value = true
@@ -209,9 +209,9 @@ export function useEncounters() {
   /**
    * 4) Delete an Encounter
    */
-  async function deleteExistingEncounter(encounterId, campaignId) {
+  async function deleteEncounter(encounterId, campaignId) {
     if (!encounterId || !campaignId) {
-      console.error('Invalid arguments to deleteExistingEncounter:', {
+      console.error('Invalid arguments to deleteEncounter:', {
         encounterId,
         campaignId,
       })
@@ -258,10 +258,10 @@ export function useEncounters() {
     loading,
     error,
     // Actions
-    fetchEncountersForCampaign,
-    addNewEncounter,
-    updateExistingEncounter,
-    deleteExistingEncounter,
+    fetchEncounters,
+    addEncounter,
+    updateEncounter,
+    deleteEncounter,
     loadEncounterById,
   }
 }
@@ -2875,7 +2875,7 @@ import {
   characterAdvancementTable,
   xpThresholdsByCharLvl,
 } from '@/utils/xpTables'
-import { fbFetchEncountersForCampaign } from '@/services/Encounter/encounterService'
+import { fbfetchEncounters } from '@/services/Encounter/encounterService'
 
 const props = defineProps({
   isOpen: {
@@ -2909,7 +2909,7 @@ async function generateSimpleEncounterId(campaignId) {
 
   try {
     // Fetch all existing encounters for the campaign
-    const encounters = await fbFetchEncountersForCampaign(campaignId)
+    const encounters = await fbfetchEncounters(campaignId)
 
     // Find the highest existing encounterNumber
     const highestId = encounters.length
@@ -3340,10 +3340,10 @@ const {
   encounters,
   loading: encounterLoading,
   error: encounterError,
-  fetchEncountersForCampaign,
-  addNewEncounter,
-  updateExistingEncounter,
-  deleteExistingEncounter,
+  fetchEncounters,
+  addEncounter,
+  updateEncounter,
+  deleteEncounter,
 } = useEncounters()
 
 // Compute "playerProgression"
@@ -3403,12 +3403,12 @@ const confirmDeleteCampaign = async () => {
 const handleAddEncounter = async (encounterData) => {
   console.log('👩‍🚀 Parent saw @add event with encounterData:', encounterData)
   // Pass campaignData as second arg
-  await addNewEncounter(encounterData, currentCampaign.value)
+  await addEncounter(encounterData, currentCampaign.value)
   isEncounterModalOpen.value = false
 }
 
 const handleUpdateEncounter = async (updatedEncounter) => {
-  await updateExistingEncounter(
+  await updateEncounter(
     updatedEncounter.id,
     updatedEncounter,
     currentCampaign.value
@@ -3424,7 +3424,7 @@ const handleDeleteEncounter = async (encounterId) => {
     )
     return
   }
-  await deleteExistingEncounter(encounterId, currentCampaign.value.id)
+  await deleteEncounter(encounterId, currentCampaign.value.id)
 }
 
 // onMounted and watch
@@ -3432,7 +3432,7 @@ onMounted(async () => {
   await loadCampaigns()
   if (currentCampaign.value?.id) {
     // Pass BOTH the campaignId and the campaign object
-    await fetchEncountersForCampaign(
+    await fetchEncounters(
       currentCampaign.value.id,
       currentCampaign.value
     )
@@ -3443,7 +3443,7 @@ watch(
   () => currentCampaign.value?.id,
   async (newCampaignId) => {
     if (newCampaignId) {
-      await fetchEncountersForCampaign(newCampaignId, currentCampaign.value)
+      await fetchEncounters(newCampaignId, currentCampaign.value)
     } else {
       encounters.value = []
     }
@@ -3964,9 +3964,9 @@ import { db } from '@/firebase/firebaseConfig'
  * @param {string} campaignId - ID of the campaign in Firestore.
  * @returns {Promise<Array>} - Returns an array of encounters.
  */
-export async function fbFetchEncountersForCampaign(campaignId) {
+export async function fbfetchEncounters(campaignId) {
   if (!campaignId) {
-    console.error('No campaignId provided to fbFetchEncountersForCampaign.')
+    console.error('No campaignId provided to fbfetchEncounters.')
     return []
   }
 
@@ -4319,9 +4319,9 @@ export const useEncounterStore = defineStore('encounter', () => {
   /**
    * Fetch Encounters for the given campaign
    */
-  async function fetchEncountersForCampaign(campaignId) {
+  async function fetchEncounters(campaignId) {
     if (!campaignId) {
-      console.error('No campaignId provided to fetchEncountersForCampaign.')
+      console.error('No campaignId provided to fetchEncounters.')
       encounters.value = []
       return
     }
@@ -4347,10 +4347,10 @@ export const useEncounterStore = defineStore('encounter', () => {
   /**
    * Add a new encounter to the current campaign
    */
-  async function addNewEncounter(encounterData) {
+  async function addEncounter(encounterData) {
     const campaignId = campaignStore.currentCampaign?.id
     if (!campaignId) {
-      console.error('No current campaign selected in addNewEncounter.')
+      console.error('No current campaign selected in addEncounter.')
       return
     }
     loading.value = true
@@ -4384,11 +4384,11 @@ export const useEncounterStore = defineStore('encounter', () => {
   /**
    * Update an existing encounter
    */
-  async function updateExistingEncounter(encounterId, updatedData) {
+  async function updateEncounter(encounterId, updatedData) {
     const campaignId = campaignStore.currentCampaign?.id
     if (!campaignId || !encounterId) {
       console.error(
-        'Invalid campaignId or encounterId in updateExistingEncounter.'
+        'Invalid campaignId or encounterId in updateEncounter.'
       )
       return
     }
@@ -4420,11 +4420,11 @@ export const useEncounterStore = defineStore('encounter', () => {
   /**
    * Delete an encounter
    */
-  async function deleteExistingEncounter(encounterId) {
+  async function deleteEncounter(encounterId) {
     const campaignId = campaignStore.currentCampaign?.id
     if (!campaignId || !encounterId) {
       console.error(
-        'Invalid campaignId or encounterId in deleteExistingEncounter.'
+        'Invalid campaignId or encounterId in deleteEncounter.'
       )
       return
     }
@@ -4480,10 +4480,10 @@ export const useEncounterStore = defineStore('encounter', () => {
     loading,
     error,
     // actions
-    fetchEncountersForCampaign,
-    addNewEncounter,
-    updateExistingEncounter,
-    deleteExistingEncounter,
+    fetchEncounters,
+    addEncounter,
+    updateEncounter,
+    deleteEncounter,
     updateRemainingAdventuringDayXP,
   }
 })
