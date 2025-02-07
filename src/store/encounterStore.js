@@ -91,13 +91,28 @@ export const useEncounterStore = defineStore('encounter', () => {
       console.error(`Encounter with ID ${encounterId} not found.`)
       return
     }
+
     const updatedEncounter = {
       ...encounter,
       status: 'completed',
       completedAt: new Date().toISOString(),
     }
     await updateExistingEncounter(encounterId, updatedEncounter)
-    await updateCampaignExperience()
+
+    // Calculate earned XP from this encounter.
+    const xpEarned = updatedEncounter.encounterExperience || 0
+    const campaign = campaignStore.currentCampaign.value
+    if (campaign) {
+      // Compute the new groupExperience without any recalculations.
+      const newGroupExperience = (campaign.groupExperience || 0) + xpEarned
+      // Update only the groupExperience field in Firestore.
+      await updateCampaignInFirebase(campaign.id, {
+        groupExperience: newGroupExperience,
+      })
+      // Refresh the local campaign data (so your UI gets the new value).
+      await campaignStore.loadCampaignById(campaign.id)
+    }
+
     await updateRemainingAdventuringDayXP()
   }
 
