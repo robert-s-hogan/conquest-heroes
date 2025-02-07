@@ -89,46 +89,32 @@ export const useAuth = () => {
 
   return { login, loginWithGoogle, register, logout };
 };
-// src/composables/useEncounters.js (Final)
-
 import { ref } from 'vue'
 import {
-  fbFetchEncountersForCampaign,
+  fbfetchEncounters,
   fbAddEncounter,
   fbUpdateEncounter,
   fbDeleteEncounter,
   fbFetchEncounterById,
 } from '@/services/Encounter/encounterService'
 import { calculateEncounterFields } from '@/utils/calculateEncounterFields'
-// or: import { generateEncounterData } from '@/utils/encounterDataGenerator'
 
 export function useEncounters() {
-  // Reactive State
   const encounters = ref([])
   const currentEncounter = ref(null)
   const loading = ref(false)
   const error = ref(null)
 
-  /**
-   * 1) Fetch Encounters for a Campaign
-   * Make sure to pass campaignData as the second arg if you need xpThresholds, etc.
-   */
-  async function fetchEncountersForCampaign(campaignId, campaignData) {
+  // Fetch encounters for a campaign
+  async function fetchEncounters(campaignId, campaignData) {
     loading.value = true
     error.value = null
     try {
-      const rawData = await fbFetchEncountersForCampaign(campaignId)
-
-      // If no campaignData is provided, we can skip or safely handle
-      // e.g. if (!campaignData) { encounters.value = rawData; return; }
-
-      // Map and derive
+      const rawData = await fbfetchEncounters(campaignId)
       encounters.value = rawData.map((enc) => {
         const updated = calculateEncounterFields(enc, campaignData)
         return { ...enc, ...updated }
       })
-
-      // Optionally set first as current
       currentEncounter.value = encounters.value[0] || null
     } catch (err) {
       error.value = err
@@ -138,25 +124,20 @@ export function useEncounters() {
     }
   }
 
-  /**
-   * 2) Add a New Encounter
-   */
-  async function addNewEncounter(baseEncounterData, campaignData) {
+  // Add a new encounter
+  async function addEncounter(baseEncounterData, campaignData) {
     loading.value = true
     error.value = null
     try {
-      // If you need xpThresholds, ensure campaignData is passed in
       const derived = calculateEncounterFields(baseEncounterData, campaignData)
       const newEncounterData = {
         ...baseEncounterData,
         ...derived,
         createdAt: new Date().toISOString(),
+        status: 'in-progress', // Encounter starts as "in-progress"
       }
 
-      // Firestore add: note signature is (campaignId, encounterData)
       const doc = await fbAddEncounter(campaignData.id, newEncounterData)
-
-      // Local state
       encounters.value.push(doc)
       currentEncounter.value = doc
     } catch (err) {
@@ -167,16 +148,14 @@ export function useEncounters() {
     }
   }
 
-  /**
-   * 3) Edit/Update an Encounter
-   */
-  async function updateExistingEncounter(
+  // Update an existing encounter
+  async function updateEncounter(
     encounterId,
     updatedEncounterData,
     campaignData
   ) {
     if (!encounterId) {
-      console.error('No encounterId provided to updateExistingEncounter.')
+      console.error('No encounterId provided to updateEncounter.')
       return
     }
     loading.value = true
@@ -187,10 +166,7 @@ export function useEncounters() {
         campaignData
       )
       const finalData = { ...updatedEncounterData, ...derived }
-
       await fbUpdateEncounter(campaignData.id, encounterId, finalData)
-
-      // Update local
       const index = encounters.value.findIndex((enc) => enc.id === encounterId)
       if (index !== -1) {
         encounters.value[index] = { ...encounters.value[index], ...finalData }
@@ -206,18 +182,15 @@ export function useEncounters() {
     }
   }
 
-  /**
-   * 4) Delete an Encounter
-   */
-  async function deleteExistingEncounter(encounterId, campaignId) {
+  // Delete an encounter
+  async function deleteEncounter(encounterId, campaignId) {
     if (!encounterId || !campaignId) {
-      console.error('Invalid arguments to deleteExistingEncounter:', {
+      console.error('Invalid arguments to deleteEncounter:', {
         encounterId,
         campaignId,
       })
       return
     }
-
     try {
       await fbDeleteEncounter(campaignId, encounterId)
       encounters.value = encounters.value.filter(
@@ -229,9 +202,7 @@ export function useEncounters() {
     }
   }
 
-  /**
-   * 5) Fetch Single Encounter by ID
-   */
+  // Load a single encounter by ID
   async function loadEncounterById(encounterId, campaignData) {
     loading.value = true
     error.value = null
@@ -252,16 +223,14 @@ export function useEncounters() {
   }
 
   return {
-    // State
     encounters,
     currentEncounter,
     loading,
     error,
-    // Actions
-    fetchEncountersForCampaign,
-    addNewEncounter,
-    updateExistingEncounter,
-    deleteExistingEncounter,
+    fetchEncounters,
+    addEncounter,
+    updateEncounter,
+    deleteEncounter,
     loadEncounterById,
   }
 }
@@ -679,6 +648,7 @@ export function calculateEncounterFields(baseEncounter, campaign) {
 }
 // src/utils/encounterUtils.js
 import { xpThresholdsByCharLvl } from '@/utils/xpTables'
+import mapItems from '@/data/mapItems.json' // NEW: import flat lookup of map items
 
 export const difficultyOptions = ['Easy', 'Medium', 'Hard', 'Deadly']
 
@@ -702,55 +672,25 @@ export const objectivesOptions = [
   'Defend the Base',
 ]
 
-/**
- * Pool of possible items for each map location.
- */
-const possibleItemsPerLocation = {
-  top: [
-    'Trap - Grease Trap',
-    'Beast (Ox)',
-    "Cartographer's Station (empty)",
-    'Hidden Pitfall',
-    'Magical Barrier',
-  ],
-  left: ['Ladder, metal, 25ft telescopic', 'Rope Ladder, wooden', 'Net Trap'],
-  center: ['Levitating Stones, orbiting', 'Construct, large', 'Player Beacon'],
-  right: ['Levitating Stones, orbiting', 'Construct, large', 'Player Beacon'],
-}
-
-/**
- * Defines the number of items each location should have.
- */
-const numberOfItemsPerLocation = {
-  top: 3,
-  left: 1,
-  center: 3,
-  right: 3,
-}
-
 export function getRandomEncounterDifficultyOption() {
   return difficultyOptions[Math.floor(Math.random() * difficultyOptions.length)]
 }
 
-// Simply generate the random items without adding any marker text.
+// NEW: Generate an array of map items (agnostic to location).
+// Randomly decide on a number of slots (between 1 and 5); for each slot, with a 20% chance, select a random item from the lookup table (the item’s “name” is used here).
 export function generateMapLocationsWithItems() {
-  const mapLocations = {}
-
-  Object.keys(possibleItemsPerLocation).forEach((location) => {
-    const possibleItems = possibleItemsPerLocation[location]
-    const numItems = numberOfItemsPerLocation[location] || 1
-    const selectedItems = []
-
-    for (let i = 0; i < numItems; i++) {
-      const randomIndex = Math.floor(Math.random() * possibleItems.length)
-      const selectedItem = possibleItems[randomIndex]
-      selectedItems.push(selectedItem)
+  const numberOfSlots = 1 + Math.floor(Math.random() * 5)
+  const slots = []
+  for (let i = 0; i < numberOfSlots; i++) {
+    if (Math.random() < 0.2) {
+      // 20% chance to roll an item
+      const randomIndex = Math.floor(Math.random() * mapItems.length)
+      slots.push(mapItems[randomIndex].name)
+    } else {
+      slots.push('')
     }
-
-    mapLocations[location] = selectedItems
-  })
-
-  return mapLocations
+  }
+  return slots
 }
 
 export function getRandomOppositionStart() {
@@ -806,18 +746,11 @@ export function calculateEncounterExperience(
     xpThresholdsByCharLvl[levelOfPlayerCharacters]?.[
       encounterDifficultyOption.toLowerCase()
     ]
-
   if (!baseXP) {
     console.error('XP Calculation Error: No base XP for difficulty')
     return 0
   }
-
-  if (baseXP) {
-    return baseXP * numberOfPlayers // Example logic
-  }
-
-  console.error('Failed to calculate encounter experience')
-  return 0 // Return a default value or handle the error
+  return baseXP * numberOfPlayers
 }
 
 export function calculatePercentOfAdventuringDayXpRemaining(
@@ -1042,7 +975,7 @@ describe("DataRow Component", () => {
     cy.contains("5").should("exist");
   });
 });
-<!-- EncounterItem.vue -->
+<!-- EncounterItem.vue (After) -->
 <template>
   <div
     class="px-1 rounded shadow cursor-pointer border-1 bg-gray-50 border-black"
@@ -1068,6 +1001,8 @@ describe("DataRow Component", () => {
       @close="isEditModalOpen = false"
       @update="handleUpdateEncounter"
       @delete="handleDeleteEncounter(encounter.id)"
+      @complete="handleEncounterComplete"
+      @fail="handleEncounterFail"
     />
   </div>
 </template>
@@ -1075,6 +1010,7 @@ describe("DataRow Component", () => {
 <script setup>
 import { ref, computed } from 'vue'
 import EditEncounterModal from '@/components/Organisms/EditEncounterModal/EditEncounterModal.vue'
+import { useEncounterStore } from '@/store/encounterStore'
 
 const props = defineProps({
   encounter: {
@@ -1084,6 +1020,9 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update-encounter', 'delete-encounter'])
+
+// Import the encounter store so we can call complete/fail actions.
+const encounterStore = useEncounterStore()
 
 const isEditModalOpen = ref(false)
 
@@ -1116,6 +1055,16 @@ const formattedDate = computed(() => {
   const date = new Date(props.encounter.date)
   return date.toLocaleDateString()
 })
+
+function handleEncounterComplete(encounterId) {
+  // Call the completeEncounter action in the store with the unique id.
+  encounterStore.completeEncounter(encounterId)
+}
+
+function handleEncounterFail(encounterId) {
+  // Call the failEncounter action in the store with the unique id.
+  encounterStore.failEncounter(encounterId)
+}
 </script>
 <!-- src/components/molecules/TabList.vue -->
 <template>
@@ -1292,7 +1241,7 @@ const props = defineProps({
   },
   placeholder: {
     type: String,
-    default: 'Please select an option',
+    default: '',
   },
   id: {
     type: String,
@@ -1385,6 +1334,47 @@ const headingClass = computed(() => {
       return "text-lg font-bold mb-2";
   }
 });
+</script>
+<!-- src/components/Atoms/AwardedContent/AwardedContent.vue -->
+<template>
+  <div class="p-4">
+    <h3 class="text-xl font-semibold mb-4">Awarded Rewards</h3>
+    <div v-if="hasAwards">
+      <p class="mb-2">
+        <strong>Awarded XP:</strong> {{ encounterData.awardedXp }}
+      </p>
+      <div>
+        <strong>Awarded Items:</strong>
+        <ul class="list-disc ml-4">
+          <li v-for="(item, index) in encounterData.awardedItems" :key="index">
+            {{ item }}
+          </li>
+        </ul>
+      </div>
+    </div>
+    <div v-else>
+      <p>No rewards have been awarded for this encounter.</p>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { computed } from 'vue'
+
+const props = defineProps({
+  encounterData: {
+    type: Object,
+    required: true,
+  },
+})
+
+const hasAwards = computed(() => {
+  return (
+    (props.encounterData.awardedXp && props.encounterData.awardedXp > 0) ||
+    (props.encounterData.awardedItems &&
+      props.encounterData.awardedItems.length > 0)
+  )
+})
 </script>
 <!-- src/components/atoms/TabButton.vue -->
 <template>
@@ -1737,10 +1727,12 @@ const textClass = computed(() => {
   }
 });
 </script>
-<!-- src/components/atoms/MapDetailsContent.vue (After Updated) -->
+<!-- src/components/atoms/MapDetailsContent.vue -->
 <script setup>
 import { reactive, watch, ref, onMounted } from 'vue'
 import SelectField from '@/components/Atoms/BaseSelect/BaseSelect.vue'
+import mapItems from '@/data/mapItems.json' // Using the flat lookup from mapItems.json
+import mundaneItems from '@/data/mundaneItems.json' // Import mundane items
 
 // Options for the opposition marker
 const oppositionLocationOptions = [
@@ -1759,6 +1751,57 @@ const props = defineProps({
 })
 const emit = defineEmits(['update:encounterDetails'])
 
+// Randomize 4 unique mundane items
+function getRandomMundaneItems() {
+  const shuffled = [...mundaneItems].sort(() => 0.5 - Math.random())
+  return shuffled.slice(0, 4).map((item) => item.name)
+}
+
+// Reactive state for random mundane items
+const randomMundaneItems = reactive(getRandomMundaneItems())
+
+// Provide options for selection
+function getMundaneOptions() {
+  return [
+    { value: '', label: 'None' },
+    ...mundaneItems.map((item) => ({ value: item.name, label: item.name })),
+  ]
+}
+
+// NEW: Generate an object for each of the four locations (top, left, center, right)
+// with exactly 5 slots. For each slot, there is a 50% chance it remains empty and a 50% chance
+// it is filled with a random item from mapItems.json.
+function generateRandomMapLocations() {
+  const locations = {}
+  const locationKeys = ['top', 'left', 'center', 'right']
+  const numSlots = 5
+  locationKeys.forEach((key) => {
+    const slots = []
+    for (let i = 0; i < numSlots; i++) {
+      if (Math.random() < 0.5) {
+        // 50% chance to be empty
+        slots.push('')
+      } else {
+        const randomIndex = Math.floor(Math.random() * mapItems.length)
+        slots.push(mapItems[randomIndex].name)
+      }
+    }
+    locations[key] = slots
+  })
+  return locations
+}
+
+// NEW: Build the select options from the flat lookup.
+// We include a top-level "None" option and then add all non‑empty items.
+function getOptionsForLocation() {
+  return [
+    { value: '', label: 'None' },
+    ...mapItems
+      .filter((item) => item.name) // filter out any empty entries (if desired)
+      .map((item) => ({ value: item.name, label: item.name })),
+  ]
+}
+
 // Build a local copy from the encounterData without overwriting mapLocations.
 // Also include npcTypes (an array of 4 strings).
 const localMapData = reactive({
@@ -1766,13 +1809,18 @@ const localMapData = reactive({
   timeOfDay: props.encounterData.timeOfDay || '',
   weather: props.encounterData.weather || '',
   objectivesOfEncounter: props.encounterData.objectivesOfEncounter || '',
-  // Expecting this to contain only random items (generated elsewhere)
-  mapLocations: props.encounterData.mapLocations || {},
+  // If no mapLocations are provided (or if the object doesn't have all 4 keys), generate new ones.
+  mapLocations:
+    props.encounterData.mapLocations &&
+    Object.keys(props.encounterData.mapLocations).length === 4
+      ? props.encounterData.mapLocations
+      : generateRandomMapLocations(),
   // Store the marker separately. Default to "None" if not provided.
   oppositionStartLocation:
     props.encounterData.oppositionStartLocation || 'None',
   // NPC Types: an array of 4 text values.
   npcTypes: props.encounterData.npcTypes || ['', '', '', ''],
+  mundaneItems: props.encounterData.mundaneItems || [...randomMundaneItems],
 })
 
 // Create a ref to control the opposition marker (this does not affect the items)
@@ -1783,7 +1831,7 @@ watch(oppositionStartLocation, (newVal) => {
   localMapData.oppositionStartLocation = newVal
 })
 
-// Emit changes whenever localMapData changes so the parent (and firebase store) stays in sync.
+// Emit changes whenever localMapData changes so the parent (and Firebase store) stays in sync.
 watch(
   () => localMapData,
   (newData) => {
@@ -1802,118 +1850,166 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="space-y-4 p-4">
-    <!-- NPC Types Inputs -->
-    <div class="mt-4">
-      <h4 class="mb-2 font-semibold">NPC Types</h4>
-      <div class="grid grid-cols-2 gap-4">
-        <div
-          v-for="(npc, index) in localMapData.npcTypes"
-          :key="index"
-          class="flex space-x-2 items-center"
-        >
-          <label class="block text-sm font-medium text-gray-700 mb-1"
-            >NPC&nbsp;{{ index + 1 }}</label
+  <div class="grid grid-cols-1 md:grid-cols-3 space-y-4">
+    <!-- Left Grid -->
+    <div class="space-y-4">
+      <!-- NPC Types Inputs -->
+      <div class="space-y-2">
+        <h4 class="font-semibold">NPC Types</h4>
+        <div class="grid grid-cols-2 gap-4">
+          <div
+            v-for="(npc, index) in localMapData.npcTypes"
+            :key="index"
+            class="flex space-x-2 items-center"
           >
-          <input
-            type="text"
-            v-model="localMapData.npcTypes[index]"
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              NPC&nbsp;{{ index + 1 }}
+            </label>
+            <input
+              type="text"
+              v-model="localMapData.npcTypes[index]"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Mundane Inputs -->
+      <div class="space-y-2">
+        <h4 class="font-semibold">Mundane Items</h4>
+        <div class="flex flex-col">
+          <div
+            v-for="(mundane, index) in localMapData.mundaneItems"
+            :key="index"
+            class="flex items-center space-y-0 text-xs"
+          >
+            <p class="text-xs">Random Item #{{ index + 1 }}</p>
+            <SelectField
+              v-model="localMapData.mundaneItems[index]"
+              :options="getMundaneOptions()"
+              class="mb-0"
+              label=""
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Map Locations -->
+      <div class="space-y-2">
+        <h4 class="font-semibold">Map Locations</h4>
+        <div class="grid grid-cols-1 sm:grid-cols-2 pr-4">
+          <SelectField
+            v-model="localMapData.mapTerrainType"
+            label="Map Terrain Type"
+            :options="terrainOptions"
+          />
+          <SelectField
+            v-model="localMapData.timeOfDay"
+            label="Time of Day"
+            :options="timeOfDayOptions"
+          />
+          <SelectField
+            v-model="localMapData.weather"
+            label="Weather"
+            :options="weatherOptions"
+          />
+          <SelectField
+            v-model="localMapData.objectivesOfEncounter"
+            label="Objectives"
+            :options="objectivesOptions"
           />
         </div>
       </div>
     </div>
 
-    <h4 class="mb-2 font-semibold">Map Locations</h4>
+    <!-- Right Grid -->
+    <div class="col-span-2">
+      <!-- Diamond Layout for Map Locations -->
+      <div class="grid grid-rows-[auto,1fr,auto] gap-y-4 bg-black p-4">
+        <!-- TOP (row 1) -->
+        <div class="flex justify-center -mb-32">
+          <div class="border p-4 bg-white w-[455px] text-center">
+            <!-- Top SelectFields -->
+            <div v-for="(item, i) in localMapData.mapLocations.top" :key="i">
+              <SelectField
+                v-model="localMapData.mapLocations.top[i]"
+                :options="getOptionsForLocation()"
+                label=""
+              />
+            </div>
 
-    <!-- Basic Map Details Selects -->
-    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
-      <SelectField
-        v-model="localMapData.mapTerrainType"
-        label="Map Terrain Type"
-        :options="terrainOptions"
-      />
-      <SelectField
-        v-model="localMapData.timeOfDay"
-        label="Time of Day"
-        :options="timeOfDayOptions"
-      />
-      <SelectField
-        v-model="localMapData.weather"
-        label="Weather"
-        :options="weatherOptions"
-      />
-      <SelectField
-        v-model="localMapData.objectivesOfEncounter"
-        label="Objectives"
-        :options="objectivesOptions"
-      />
-    </div>
-
-    <!-- Diamond Layout for Map Locations -->
-    <div class="mt-4 flex flex-col items-center bg-black p-8">
-      <!-- Top Row -->
-      <div class="w-full flex justify-center">
-        <div class="w-1/2 border p-2 text-center relative bg-white">
-          <div class="flex flex-col items-center justify-center">
-            <p v-for="(item, i) in localMapData.mapLocations.top" :key="i">
-              {{ item }}
-            </p>
-          </div>
-          <div
-            v-if="localMapData.oppositionStartLocation === 'Top'"
-            class="flex items-center justify-center bg-black bg-opacity-50 text-white"
-          >
-            OPPOSITION START
+            <!-- Opposition Start Overlay for Top -->
+            <div
+              v-if="localMapData.oppositionStartLocation === 'Top'"
+              class="flex items-center justify-center bg-red-500 bg-opacity-50 text-white"
+            >
+              OPPOSITION START
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Middle Row: Left and Right -->
-      <div class="w-full flex justify-between mt-4">
-        <!-- Left -->
-        <div class="w-1/2 border p-2 text-center relative bg-white">
-          <div class="flex flex-col items-center justify-center">
-            <p v-for="(item, i) in localMapData.mapLocations.left" :key="i">
-              {{ item }}
-            </p>
+        <!-- MIDDLE ROW (Left & Right side by side) -->
+        <div class="grid grid-cols-3">
+          <!-- LEFT -->
+          <div class="border p-4 bg-white text-center">
+            <div v-for="(item, i) in localMapData.mapLocations.left" :key="i">
+              <SelectField
+                v-model="localMapData.mapLocations.left[i]"
+                :options="getOptionsForLocation()"
+                label=""
+              />
+            </div>
+
+            <!-- Opposition Start Overlay for Left -->
+            <div
+              v-if="localMapData.oppositionStartLocation === 'Left'"
+              class="flex items-center justify-center bg-black bg-opacity-50 text-white"
+            >
+              OPPOSITION START
+            </div>
           </div>
-          <div
-            v-if="localMapData.oppositionStartLocation === 'Left'"
-            class="flex items-center justify-center bg-black bg-opacity-50 text-white"
-          >
-            OPPOSITION START
+
+          <!-- EMPTY MID-->
+          <div />
+
+          <!-- RIGHT -->
+          <div class="border p-4 bg-white text-center">
+            <div v-for="(item, i) in localMapData.mapLocations.right" :key="i">
+              <SelectField
+                v-model="localMapData.mapLocations.right[i]"
+                :options="getOptionsForLocation()"
+                label=""
+              />
+            </div>
+
+            <!-- Opposition Start Overlay for Right -->
+            <div
+              v-if="localMapData.oppositionStartLocation === 'Right'"
+              class="flex items-center justify-center bg-black bg-opacity-50 text-white"
+            >
+              OPPOSITION START
+            </div>
           </div>
         </div>
-        <!-- Right -->
-        <div class="w-1/2 border p-2 text-center relative bg-white">
-          <div class="flex flex-col items-center justify-center">
-            <p v-for="(item, i) in localMapData.mapLocations.right" :key="i">
-              {{ item }}
-            </p>
-          </div>
-          <div
-            v-if="localMapData.oppositionStartLocation === 'Right'"
-            class="flex items-center justify-center bg-black bg-opacity-50 text-white"
-          >
-            OPPOSITION START
-          </div>
-        </div>
-      </div>
 
-      <!-- Bottom Row: Center -->
-      <div class="w-full flex justify-center mt-4 relative">
-        <div class="w-1/2 border p-2 text-center bg-white">
-          <div class="flex flex-col items-center justify-center">
-            <p v-for="(item, i) in localMapData.mapLocations.center" :key="i">
-              {{ item }}
-            </p>
-          </div>
-          <!-- Always overlay a single "GROUP START" marker on center -->
-          <div
-            class="flex items-center justify-center bg-blue-500 bg-opacity-50 text-white"
-          >
-            GROUP START
+        <!-- BOTTOM (row 3) -->
+        <div class="flex justify-center -mt-32">
+          <div class="border p-4 bg-white w-[455px] text-center">
+            <!-- Bottom / Center SelectFields -->
+            <div v-for="(item, i) in localMapData.mapLocations.center" :key="i">
+              <SelectField
+                v-model="localMapData.mapLocations.center[i]"
+                :options="getOptionsForLocation()"
+                label=""
+              />
+            </div>
+
+            <!-- You said you always overlay "GROUP START" on center -->
+            <div
+              class="flex items-center justify-center bg-blue-500 bg-opacity-50 text-white"
+            >
+              GROUP START
+            </div>
           </div>
         </div>
       </div>
@@ -2084,6 +2180,14 @@ watch(
     size="large"
     @close="closeModal"
   >
+    <!-- Status Indicator -->
+    <div v-if="encounter.status" class="mb-4">
+      <span :class="statusClass">{{ statusText }}</span>
+      <span v-if="encounter.status !== 'in-progress'" class="ml-2">
+        ({{ outcomeIndicator }})
+      </span>
+    </div>
+
     <form @submit.prevent="handleSubmit">
       <!-- Wrap content in a scrollable container -->
       <div class="max-h-[90vh] overflow-y-auto">
@@ -2103,7 +2207,8 @@ watch(
         </div>
       </div>
 
-      <div class="flex justify-between mt-6">
+      <!-- Action Buttons -->
+      <div class="flex justify-between items-center gap-4 mt-6">
         <Button
           type="button"
           variant="danger"
@@ -2112,6 +2217,20 @@ watch(
         >
           Delete Encounter
         </Button>
+
+        <!-- Only allow status change if the encounter is in progress -->
+        <div>
+          <select
+            id="status"
+            v-model="encounterData.status"
+            class="w-full p-2 border border-gray-300 rounded"
+          >
+            <option value="in-progress">In Progress</option>
+            <option value="completed">Completed</option>
+            <option value="failed">Failed</option>
+          </select>
+        </div>
+
         <Button type="submit" variant="primary" :loading="isSubmitting">
           Save Changes
         </Button>
@@ -2121,12 +2240,13 @@ watch(
 </template>
 
 <script setup>
-import { ref, watch, reactive } from 'vue'
+import { computed, ref, watch, reactive } from 'vue'
 import Modal from '@/components/Atoms/BaseModal/BaseModal.vue'
 import Button from '@/components/Atoms/BaseButton/BaseButton.vue'
 import CaravanContent from '@/components/Atoms/CaravanContent/CaravanContent.vue'
 import MapDetailsContent from '@/components/Atoms/MapDetailsContent/MapDetailsContent.vue'
 import XPDetailsContent from '@/components/Atoms/XPDetailsContent/XPDetailsContent.vue'
+import AwardedContent from '@/components/Atoms/AwardedContent/AwardedContent.vue'
 import Tabs from '@/components/Organisms/BaseTabs/BaseTabs.vue'
 
 import {
@@ -2139,17 +2259,32 @@ import {
 } from '@/utils/encounterUtils'
 
 const props = defineProps({
-  isOpen: {
-    type: Boolean,
-    required: true,
-  },
-  encounter: {
-    type: Object,
-    required: true,
-  },
+  isOpen: { type: Boolean, required: true },
+  encounter: { type: Object, required: true },
 })
 
-const emit = defineEmits(['close', 'update', 'delete'])
+// Include 'complete' and 'fail' events
+const emit = defineEmits(['close', 'update', 'delete', 'complete', 'fail'])
+
+const statusText = computed(() => {
+  if (props.encounter.status === 'completed')
+    return 'Encounter Completed Successfully'
+  if (props.encounter.status === 'failed') return 'Encounter Failed'
+  return 'Encounter In Progress'
+})
+
+const statusClass = computed(() => {
+  if (props.encounter.status === 'completed') return 'text-green-600 font-bold'
+  if (props.encounter.status === 'failed') return 'text-red-600 font-bold'
+  return 'text-gray-600'
+})
+
+// New computed property to explicitly show the outcome:
+const outcomeIndicator = computed(() => {
+  if (props.encounter.status === 'completed') return 'Success'
+  if (props.encounter.status === 'failed') return 'Failure'
+  return 'Pending'
+})
 
 const encounterData = reactive({ ...props.encounter })
 const isSubmitting = ref(false)
@@ -2177,52 +2312,12 @@ const objectivesOptionsUnwrapped = objectivesOptions.map((value) => ({
   label: value,
 }))
 
-const possibleItemsPerLocation = {
-  MAP: [
-    'Trap - Grease Trap',
-    'Beast (Ox)',
-    "Cartographer's Station (empty)",
-    'Hidden Pitfall',
-    'Magical Barrier',
-  ],
-  'Suspended Cage': [
-    'Ladder, metal, 25ft telescopic',
-    'Rope Ladder, wooden',
-    'Net Trap',
-  ],
-  'Carnival Tent': ['Backpack (empty)', 'Storage Chest', 'Magic Mirror'],
-  'OPPOSITION START': [
-    'Hot Air Balloon, tethered, unoccupied',
-    'Ambush Point',
-    'Scout Tower',
-  ],
-  Den: ['Fountain (holy water)', 'Den (empty)', 'Alchemy Lab'],
-  'Cannon, gunpowder loaded': [
-    'Levitating Stones, orbiting',
-    'Cannon Ball Rack',
-    'Gunpowder Keg',
-  ],
-  Construct: ['Construct, large', 'Guard Construct', 'Repair Station'],
-  'Time-Worn Reliquary, sacred contents': [
-    'Ancient Tome',
-    'Sacred Relic',
-    'Mystic Artifact',
-  ],
-  'PLAYER START': [
-    'Levitating Stones, orbiting',
-    'Construct, large',
-    'Player Beacon',
-  ],
-}
-
 const tabs = [
   {
     id: 'xp-details',
     label: 'XP Details',
     component: XPDetailsContent,
-    props: {
-      encounterData, // your reactive encounterData object
-    },
+    props: { encounterData },
     variant: 'danger',
     loading: false,
   },
@@ -2231,8 +2326,8 @@ const tabs = [
     label: 'Map Details',
     component: MapDetailsContent,
     props: {
-      encounterData, // pass the entire encounterData
-      terrainOptions: terrainOptionsUnwrapped, // e.g., [ { value: 'Desert', label: 'Desert' }, ... ]
+      encounterData,
+      terrainOptions: terrainOptionsUnwrapped,
       timeOfDayOptions: timeOfDayOptionsUnwrapped,
       weatherOptions: weatherOptionsUnwrapped,
       objectivesOptions: objectivesOptionsUnwrapped,
@@ -2244,17 +2339,19 @@ const tabs = [
     id: 'caravan',
     label: 'Caravan',
     component: CaravanContent,
-    props: {
-      encounterData,
-    },
+    props: { encounterData },
     variant: 'primary',
     loading: false,
   },
+  {
+    id: 'awarded',
+    label: 'Awarded',
+    component: AwardedContent,
+    props: { encounterData },
+    variant: 'secondary',
+    loading: false,
+  },
 ]
-
-function updateEncounterData(newData) {
-  Object.assign(encounterData, newData)
-}
 
 if (
   !encounterData.mapLocations ||
@@ -2299,11 +2396,38 @@ const handleSubmit = async () => {
 const handleDelete = async () => {
   isDeleting.value = true
   try {
-    await emit('delete', encounterData.encounterNumber)
+    // Pass the unique id from Firestore
+    await emit('delete', encounterData.id)
   } catch (error) {
     console.error('Delete failed:', error)
   } finally {
     isDeleting.value = false
+    closeModal()
+  }
+}
+
+function completeEncounter() {
+  isSubmitting.value = true
+  try {
+    // Emit a 'complete' event with the encounter's id.
+    emit('complete', encounterData.id)
+  } catch (error) {
+    console.error('Complete encounter failed:', error)
+  } finally {
+    isSubmitting.value = false
+    closeModal()
+  }
+}
+
+function failEncounter() {
+  isSubmitting.value = true
+  try {
+    // Emit a 'fail' event with the encounter's id.
+    emit('fail', encounterData.id)
+  } catch (error) {
+    console.error('Fail encounter failed:', error)
+  } finally {
+    isSubmitting.value = false
     closeModal()
   }
 }
@@ -2805,6 +2929,7 @@ import {
   characterAdvancementTable,
   xpThresholdsByCharLvl,
 } from '@/utils/xpTables'
+import { fbFetchEncountersForCampaign } from '@/services/Encounter/encounterService'
 
 const props = defineProps({
   isOpen: {
@@ -2830,9 +2955,27 @@ const timeOfDay = ref('')
 const weather = ref('')
 const objectivesOfEncounter = ref('')
 
-// 1) Simple helper for random ID in [1..100]
-function generateSimpleEncounterId() {
-  return Math.floor(Math.random() * 100) + 1
+async function generateSimpleEncounterId(campaignId) {
+  if (!campaignId) {
+    console.error('generateSimpleEncounterId: No campaignId provided.')
+    return 1
+  }
+
+  try {
+    // Fetch all existing encounters for the campaign
+    const encounters = await fbFetchEncountersForCampaign(campaignId)
+
+    // Find the highest existing encounterNumber
+    const highestId = encounters.length
+      ? Math.max(...encounters.map((enc) => enc.encounterNumber || 0))
+      : 0
+
+    // Return the next sequential ID
+    return highestId + 1
+  } catch (error) {
+    console.error('Error generating encounter ID:', error)
+    return 1 // Default to 1 if error occurs
+  }
 }
 
 const calculateRemainingXP = () => {
@@ -2941,15 +3084,16 @@ const closeModal = () => {
   resetForm()
 }
 
-const handleSubmit = () => {
+const handleSubmit = async () => {
   console.log('🚀 AddEncounterModal: handleSubmit triggered')
-
   isSubmitting.value = true
+
+  // Generate a unique sequential encounter ID
+  const newEncounterId = await generateSimpleEncounterId(props.campaign?.id)
 
   // 2) Build a more comprehensive encounter object
   const newEncounter = {
-    // If you'd rather call it 'id', that's fine too
-    encounterNumber: generateSimpleEncounterId(),
+    encounterNumber: newEncounterId, // Ensure it's unique
     date: new Date().toISOString(),
 
     // Fields from your form
@@ -2961,13 +3105,6 @@ const handleSubmit = () => {
     timeOfDay: timeOfDay.value,
     weather: weather.value,
     objectivesOfEncounter: objectivesOfEncounter.value,
-
-    // Additional placeholders (if you want to store them):
-    // players: ['Player 1', 'Player 2'],
-    // npcTypes: ['', '', '', ''],
-    // mapLocations: { top: [], left: [], center: [], right: [] },
-    // shortRestNeededFirstOne: false,
-    // ...
   }
 
   emit('add', newEncounter)
@@ -3257,10 +3394,10 @@ const {
   encounters,
   loading: encounterLoading,
   error: encounterError,
-  fetchEncountersForCampaign,
-  addNewEncounter,
-  updateExistingEncounter,
-  deleteExistingEncounter,
+  fetchEncounters,
+  addEncounter,
+  updateEncounter,
+  deleteEncounter,
 } = useEncounters()
 
 // Compute "playerProgression"
@@ -3320,12 +3457,12 @@ const confirmDeleteCampaign = async () => {
 const handleAddEncounter = async (encounterData) => {
   console.log('👩‍🚀 Parent saw @add event with encounterData:', encounterData)
   // Pass campaignData as second arg
-  await addNewEncounter(encounterData, currentCampaign.value)
+  await addEncounter(encounterData, currentCampaign.value)
   isEncounterModalOpen.value = false
 }
 
 const handleUpdateEncounter = async (updatedEncounter) => {
-  await updateExistingEncounter(
+  await updateEncounter(
     updatedEncounter.id,
     updatedEncounter,
     currentCampaign.value
@@ -3341,7 +3478,7 @@ const handleDeleteEncounter = async (encounterId) => {
     )
     return
   }
-  await deleteExistingEncounter(encounterId, currentCampaign.value.id)
+  await deleteEncounter(encounterId, currentCampaign.value.id)
 }
 
 // onMounted and watch
@@ -3349,10 +3486,7 @@ onMounted(async () => {
   await loadCampaigns()
   if (currentCampaign.value?.id) {
     // Pass BOTH the campaignId and the campaign object
-    await fetchEncountersForCampaign(
-      currentCampaign.value.id,
-      currentCampaign.value
-    )
+    await fetchEncounters(currentCampaign.value.id, currentCampaign.value)
   }
 })
 
@@ -3360,7 +3494,7 @@ watch(
   () => currentCampaign.value?.id,
   async (newCampaignId) => {
     if (newCampaignId) {
-      await fetchEncountersForCampaign(newCampaignId, currentCampaign.value)
+      await fetchEncounters(newCampaignId, currentCampaign.value)
     } else {
       encounters.value = []
     }
@@ -3862,8 +3996,6 @@ describe('Auth Service', () => {
     })
   })
 })
-// src/services/encounterService.js (After)
-
 import {
   collection,
   getDocs,
@@ -3881,19 +4013,17 @@ import { db } from '@/firebase/firebaseConfig'
  * @param {string} campaignId - ID of the campaign in Firestore.
  * @returns {Promise<Array>} - Returns an array of encounters.
  */
-export async function fbFetchEncountersForCampaign(campaignId) {
+export async function fbfetchEncounters(campaignId) {
   if (!campaignId) {
-    console.error('No campaignId provided to fbFetchEncountersForCampaign.')
+    console.error('No campaignId provided to fbfetchEncounters.')
     return []
   }
-
   const encountersCollection = collection(
     db,
     'campaigns',
     campaignId,
     'encounters'
   )
-
   const snapshot = await getDocs(encountersCollection)
   return snapshot.docs.map((docSnap) => ({
     id: docSnap.id,
@@ -3913,10 +4043,8 @@ export async function fbFetchEncounterById(campaignId, encounterId) {
     console.error('Invalid arguments to fbFetchEncounterById.')
     return null
   }
-
   const docRef = doc(db, 'campaigns', campaignId, 'encounters', encounterId)
   const docSnap = await getDoc(docRef)
-
   if (!docSnap.exists()) {
     return null
   }
@@ -3935,18 +4063,15 @@ export async function fbAddEncounter(campaignId, encounterData) {
     console.error('No campaignId provided to fbAddEncounter.')
     return null
   }
-
   const encountersCollection = collection(
     db,
     'campaigns',
     campaignId,
     'encounters'
   )
-
   // Exclude `id` if it exists
   const { id, ...data } = encounterData
   const docRef = await addDoc(encountersCollection, data)
-
   return { id: docRef.id, ...data }
 }
 
@@ -3963,7 +4088,6 @@ export async function fbUpdateEncounter(campaignId, encounterId, updatedData) {
     console.error('Invalid arguments to fbUpdateEncounter.')
     return
   }
-
   try {
     const encounterDocRef = doc(
       db,
@@ -3991,10 +4115,35 @@ export async function fbDeleteEncounter(campaignId, encounterId) {
     console.error('No campaignId provided to fbDeleteEncounter.')
     return
   }
-
   const docRef = doc(db, 'campaigns', campaignId, 'encounters', encounterId)
   await deleteDoc(docRef)
   console.log(`Encounter with ID ${encounterId} deleted successfully.`)
+}
+
+/**
+ * Fetch all encounters for the given campaign.
+ *
+ * @param {string} campaignId - ID of the campaign in Firestore.
+ * @returns {Promise<Array>} - Returns an array of encounters.
+ */
+export async function fbFetchEncountersForCampaign(campaignId) {
+  if (!campaignId) {
+    console.error('No campaignId provided to fbFetchEncountersForCampaign.')
+    return []
+  }
+
+  const encountersCollection = collection(
+    db,
+    'campaigns',
+    campaignId,
+    'encounters'
+  )
+
+  const snapshot = await getDocs(encountersCollection)
+  return snapshot.docs.map((docSnap) => ({
+    id: docSnap.id,
+    ...docSnap.data(),
+  }))
 }
 // firebaseConfig.cy.js
 import { initializeApp } from "firebase/app";
@@ -4196,15 +4345,13 @@ export async function updateCampaignInFirebase(campaignId, updatedData) {
     console.error('Error updating campaign in Firebase:', error)
   }
 }
-// src/store/encounterStore.js
-
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import {
-  fetchEncounters,
-  addEncounter,
-  updateEncounter,
-  deleteEncounter,
+  fbfetchEncounters,
+  fbAddEncounter,
+  fbUpdateEncounter,
+  fbDeleteEncounter,
 } from '@/services/Encounter/encounterService'
 
 import {
@@ -4214,14 +4361,10 @@ import {
 
 import { calculateRemainingAdventuringDayXP } from '@/utils/encounterUtils'
 import { calculateEncounterFields } from '@/utils/calculateEncounterFields'
-// or import { generateEncounterData } from '@/utils/encounterDataGenerator'
-
 import { useCampaignStore } from './campaignStore'
 
 export const useEncounterStore = defineStore('encounter', () => {
-  // ===========================
   // State
-  // ===========================
   const encounters = ref([])
   const loading = ref(false)
   const error = ref(null)
@@ -4229,13 +4372,7 @@ export const useEncounterStore = defineStore('encounter', () => {
   // Access the Campaign Store
   const campaignStore = useCampaignStore()
 
-  // ===========================
-  // Actions
-  // ===========================
-
-  /**
-   * Fetch Encounters for the given campaign
-   */
+  // Fetch Encounters for the given campaign
   async function fetchEncountersForCampaign(campaignId) {
     if (!campaignId) {
       console.error('No campaignId provided to fetchEncountersForCampaign.')
@@ -4245,8 +4382,7 @@ export const useEncounterStore = defineStore('encounter', () => {
     loading.value = true
     error.value = null
     try {
-      const data = await fetchEncounters(campaignId)
-      // If you want to transform each encounter:
+      const data = await fbfetchEncounters(campaignId)
       const campaign = campaignStore.currentCampaign
       encounters.value = data.map((enc) => {
         const derived = calculateEncounterFields(enc, campaign)
@@ -4261,9 +4397,8 @@ export const useEncounterStore = defineStore('encounter', () => {
     }
   }
 
-  /**
-   * Add a new encounter to the current campaign
-   */
+  // Add a new encounter to the current campaign
+  // Add a new encounter without isSuccessful
   async function addNewEncounter(encounterData) {
     const campaignId = campaignStore.currentCampaign?.id
     if (!campaignId) {
@@ -4275,19 +4410,17 @@ export const useEncounterStore = defineStore('encounter', () => {
 
     try {
       const campaign = campaignStore.currentCampaign
-      // Merge derived fields
       const derived = calculateEncounterFields(encounterData, campaign)
       const finalData = {
         ...encounterData,
         ...derived,
         createdAt: new Date().toISOString(),
+        status: 'in-progress', // Encounter starts as "in-progress"
       }
-
-      const addedEncounter = await addEncounter(campaignId, finalData)
+      const addedEncounter = await fbAddEncounter(campaignId, finalData)
       if (addedEncounter) {
         encounters.value.push(addedEncounter)
         console.log('Encounter added:', addedEncounter)
-        // e.g. recalc Adventuring Day XP
         await updateRemainingAdventuringDayXP()
       }
     } catch (err) {
@@ -4298,9 +4431,40 @@ export const useEncounterStore = defineStore('encounter', () => {
     }
   }
 
-  /**
-   * Update an existing encounter
-   */
+  // Mark an encounter as complete (without isSuccessful)
+  async function completeEncounter(encounterId) {
+    const encounter = encounters.value.find((e) => e.id === encounterId)
+    if (!encounter) {
+      console.error(`Encounter with ID ${encounterId} not found.`)
+      return
+    }
+    const updatedEncounter = {
+      ...encounter,
+      status: 'completed',
+      completedAt: new Date().toISOString(),
+    }
+    await updateExistingEncounter(encounterId, updatedEncounter)
+    await updateCampaignExperience()
+    await updateRemainingAdventuringDayXP()
+  }
+
+  // Mark an encounter as failed (without isSuccessful)
+  async function failEncounter(encounterId) {
+    const encounter = encounters.value.find((e) => e.id === encounterId)
+    if (!encounter) {
+      console.error(`Encounter with ID ${encounterId} not found.`)
+      return
+    }
+    const updatedEncounter = {
+      ...encounter,
+      status: 'failed',
+      completedAt: new Date().toISOString(),
+    }
+    await updateExistingEncounter(encounterId, updatedEncounter)
+    await updateCampaignExperience()
+  }
+
+  // Update an existing encounter
   async function updateExistingEncounter(encounterId, updatedData) {
     const campaignId = campaignStore.currentCampaign?.id
     if (!campaignId || !encounterId) {
@@ -4311,16 +4475,11 @@ export const useEncounterStore = defineStore('encounter', () => {
     }
     loading.value = true
     error.value = null
-
     try {
       const campaign = campaignStore.currentCampaign
-      // Derive fields again
       const derived = calculateEncounterFields(updatedData, campaign)
       const finalData = { ...updatedData, ...derived }
-
-      await updateEncounter(campaignId, encounterId, finalData)
-
-      // Update local state
+      await fbUpdateEncounter(campaignId, encounterId, finalData)
       const index = encounters.value.findIndex((e) => e.id === encounterId)
       if (index !== -1) {
         encounters.value[index] = { ...encounters.value[index], ...finalData }
@@ -4334,9 +4493,7 @@ export const useEncounterStore = defineStore('encounter', () => {
     }
   }
 
-  /**
-   * Delete an encounter
-   */
+  // Delete an encounter
   async function deleteExistingEncounter(encounterId) {
     const campaignId = campaignStore.currentCampaign?.id
     if (!campaignId || !encounterId) {
@@ -4347,13 +4504,10 @@ export const useEncounterStore = defineStore('encounter', () => {
     }
     loading.value = true
     error.value = null
-
     try {
-      await deleteEncounter(campaignId, encounterId)
-      // Remove from local array
+      await fbDeleteEncounter(campaignId, encounterId)
       encounters.value = encounters.value.filter((e) => e.id !== encounterId)
       console.log(`Encounter with ID ${encounterId} deleted successfully.`)
-      // e.g. recalc Adventuring Day XP
       await updateRemainingAdventuringDayXP()
     } catch (err) {
       console.error('Error deleting encounter:', err)
@@ -4363,20 +4517,14 @@ export const useEncounterStore = defineStore('encounter', () => {
     }
   }
 
-  /**
-   * Recalc remaining Adventuring Day XP
-   */
+  // Recalculate remaining Adventuring Day XP
   async function updateRemainingAdventuringDayXP() {
     const campaignId = campaignStore.currentCampaign?.id
     if (!campaignId) return
-
     try {
       const campaign = await fetchCampaignById(campaignId)
-      // The second parameter "usedXp" is questionable if it’s "campaignId" or actual XP usage
-      // Possibly you want to sum up XP from all encounters or a different logic:
       const remainingXP = await calculateRemainingAdventuringDayXP(
         campaign.adventuringDayXpLimit,
-        // If "usedXp" is your total XP used, you might pass something else here:
         campaignId
       )
       await updateCampaignInFirebase(campaignId, {
@@ -4388,20 +4536,28 @@ export const useEncounterStore = defineStore('encounter', () => {
     }
   }
 
-  // ===========================
-  // Return from defineStore
-  // ===========================
+  // Helper to recalc group experience
+  async function updateCampaignExperience() {
+    const campaign = campaignStore.currentCampaign
+    if (!campaign) return
+    const totalXp = encounters.value.reduce((sum, e) => {
+      return e.status === 'completed' ? sum + (e.encounterExperience || 0) : sum
+    }, 0)
+    const updatedCampaign = { ...campaign, groupExperience: totalXp }
+    await campaignStore.editExistingCampaign(updatedCampaign)
+  }
+
   return {
-    // state
     encounters,
     loading,
     error,
-    // actions
     fetchEncountersForCampaign,
     addNewEncounter,
     updateExistingEncounter,
     deleteExistingEncounter,
     updateRemainingAdventuringDayXP,
+    completeEncounter,
+    failEncounter,
   }
 })
 // store/campaignStore.js (After)

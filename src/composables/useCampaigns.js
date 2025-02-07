@@ -90,14 +90,19 @@ export function useCampaigns() {
     try {
       const xpInfo = calculateXpFields(Number(updated.groupExperience || 0))
       const derived = calculateDerivedFields({ ...updated, ...xpInfo })
-      const finalData = { ...updated, ...xpInfo, ...derived }
+      // Explicitly preserve the updated groupExperience value
+      const finalData = {
+        ...updated,
+        ...xpInfo,
+        ...derived,
+        groupExperience: updated.groupExperience,
+      }
 
-      // Make sure finalData has no nested Firestore references
-      // or other objects that Firestore might interpret as queries.
+      // Update the campaign in Firebase
+      await fbUpdateCampaign(finalData)
+      console.log('Final campaign data to update:', finalData)
 
-      await fbUpdateCampaign(finalData) // from your campaignService
-
-      // update local store
+      // Update local store
       const index = campaigns.value.findIndex((c) => c.id === updated.id)
       if (index !== -1) {
         campaigns.value[index] = { ...campaigns.value[index], ...finalData }

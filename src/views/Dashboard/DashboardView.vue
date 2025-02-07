@@ -169,10 +169,10 @@ const {
   encounters,
   loading: encounterLoading,
   error: encounterError,
-  fetchEncountersForCampaign,
-  addNewEncounter,
-  updateExistingEncounter,
-  deleteExistingEncounter,
+  fetchEncounters,
+  addEncounter,
+  updateEncounter,
+  deleteEncounter,
 } = useEncounters()
 
 // Compute "playerProgression"
@@ -232,12 +232,12 @@ const confirmDeleteCampaign = async () => {
 const handleAddEncounter = async (encounterData) => {
   console.log('👩‍🚀 Parent saw @add event with encounterData:', encounterData)
   // Pass campaignData as second arg
-  await addNewEncounter(encounterData, currentCampaign.value)
+  await addEncounter(encounterData, currentCampaign.value)
   isEncounterModalOpen.value = false
 }
 
 const handleUpdateEncounter = async (updatedEncounter) => {
-  await updateExistingEncounter(
+  await updateEncounter(
     updatedEncounter.id,
     updatedEncounter,
     currentCampaign.value
@@ -253,7 +253,7 @@ const handleDeleteEncounter = async (encounterId) => {
     )
     return
   }
-  await deleteExistingEncounter(encounterId, currentCampaign.value.id)
+  await deleteEncounter(encounterId, currentCampaign.value.id)
 }
 
 // onMounted and watch
@@ -261,10 +261,7 @@ onMounted(async () => {
   await loadCampaigns()
   if (currentCampaign.value?.id) {
     // Pass BOTH the campaignId and the campaign object
-    await fetchEncountersForCampaign(
-      currentCampaign.value.id,
-      currentCampaign.value
-    )
+    await fetchEncounters(currentCampaign.value.id, currentCampaign.value)
   }
 })
 
@@ -272,7 +269,7 @@ watch(
   () => currentCampaign.value?.id,
   async (newCampaignId) => {
     if (newCampaignId) {
-      await fetchEncountersForCampaign(newCampaignId, currentCampaign.value)
+      await fetchEncounters(newCampaignId, currentCampaign.value)
     } else {
       encounters.value = []
     }
