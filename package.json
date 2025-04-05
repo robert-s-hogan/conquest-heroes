@@ -5,16 +5,16 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "clean-install": "rm -rf node_modules package-lock.json && npm install",
-    "build": "npm run lint && vite build",
+    "clean-install": "rm -rf node_modules pnpm-lock.yaml && pnpm install",
+    "build": "pnpm run lint && vite build",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "concat-files": "find src -type d \\(     -name 'node_modules' -o -name '.git' -o -name 'dist' -o     -name 'firebase' -o -name 'secrets' -o -name '.vercel' -o -name '.firebase'   \\) -prune -o -type f \\(     -name \"*.vue\" -o -name \"*.js\" -o -name \"*.ts\"   \\) ! -name '.env*' ! -name 'package-lock.json' ! -name 'yarn.lock' ! -name 'pnpm-lock.yaml'     ! -name 'npm-debug.log*' ! -name 'yarn-debug.log*' ! -name 'firebase-debug.log' ! -name 'firestore-debug.log'     ! -name 'firebase-export' ! -name '.*.swp' ! -name '.*.swo' ! -name '*.bak' ! -name '*.orig'   -print0 | xargs -0 cat > all-files.txt",
+    "concat-files": "find src -type d \\( -name 'node_modules' -o -name '.git' -o -name 'dist' -o -name 'firebase' -o -name 'secrets' -o -name '.vercel' -o -name '.firebase' \\) -prune -o -type f \\( -name \"*.vue\" -o -name \"*.js\" -o -name \"*.ts\" \\) ! -name '.env*' ! -name 'package-lock.json' ! -name 'yarn.lock' ! -name 'pnpm-lock.yaml' ! -name 'npm-debug.log*' ! -name 'yarn-debug.log*' ! -name 'firebase-debug.log' ! -name 'firestore-debug.log' ! -name 'firebase-export' ! -name '.*.swp' ! -name '.*.swo' ! -name '*.bak' ! -name '*.orig' -print0 | xargs -0 cat > all-files.txt",
     "preview": "vite preview",
-    "test": "npx cypress open --component --browser edge",
-    "test:e2e": "npx cypress open --e2e --browser edge",
-    "test:run": "npx cypress run --component --browser edge",
-    "test:e2e:run": "npx cypress run --e2e --browser edge"
+    "test": "pnpm exec cypress open --component --browser edge",
+    "test:e2e": "pnpm exec cypress open --e2e --browser edge",
+    "test:run": "pnpm exec cypress run --component --browser edge",
+    "test:e2e:run": "pnpm exec cypress run --e2e --browser edge"
   },
   "dependencies": {
     "firebase": "^10.14.0",
